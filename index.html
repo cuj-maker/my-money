@@ -1,0 +1,2270 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MY MONEY</title>
+<meta name="description" content="개인 가계부 · 자산 관리">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MY MONEY">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f3f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0f13" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+  :root{
+    --bg:#f2f3f6; --surface:#ffffff; --surface-2:#f6f7f9; --ink:#14171c; --ink2:#4f5763; --muted:#8a919b;
+    --line:#e6e8ec; --line-2:#eef0f3; --accent:#3366e6; --accent-2:#a9bdf5; --accent-soft:#ecf1fd;
+    --up:#e0453b; --down:#2f6fd6; --warn:#c27803;
+    --income:#13855c; --spendc:#e0453b; --savec:#3366e6;
+    --field:#f4f5f8; --bar:rgba(255,255,255,.88);
+    --safe-t:env(safe-area-inset-top, 0px); --safe-b:env(safe-area-inset-bottom, 0px);
+    --tabbar:58px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d0f13; --surface:#181b22; --surface-2:#1f232b; --ink:#eceef1; --ink2:#aab1ba; --muted:#737b86;
+      --line:#2a2f38; --line-2:#22262e; --accent:#7096f5; --accent-2:#3a4f86; --accent-soft:#1c2438;
+      --up:#f07167; --down:#6f9ef5; --warn:#e3a008;
+      --income:#4cc38a; --spendc:#f07167; --savec:#7096f5;
+      --field:#22262e; --bar:rgba(24,27,34,.88);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--bg); color:var(--ink); overscroll-behavior-y:none;
+    font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard','Malgun Gothic',sans-serif;
+    font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased}
+  .num{font-variant-numeric:tabular-nums}
+  .hide{display:none !important}
+  .up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--muted)}
+  button{font:inherit; color:inherit}
+
+  /* ---------- 상단 ---------- */
+  .appbar{position:sticky; top:0; z-index:30; background:var(--bar); -webkit-backdrop-filter:saturate(1.6) blur(18px); backdrop-filter:saturate(1.6) blur(18px);
+    padding:calc(var(--safe-t) + 10px) 18px 10px; border-bottom:.5px solid var(--line)}
+  .appbar-in{display:flex; align-items:flex-end; justify-content:space-between; gap:10px}
+  .appbar h1{margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-.03em; line-height:1.15}
+  .savestate{display:block; font-size:.72rem; color:var(--muted); margin-top:2px}
+  .savestate::before{content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--income); margin-right:5px; vertical-align:1px}
+  .savestate.error::before{background:var(--up)}
+  .appbar .mnav{margin-bottom:2px}
+
+  .wrap{padding:14px 16px calc(var(--tabbar) + var(--safe-b) + 96px)}
+
+  /* ---------- 하단 탭바 ---------- */
+  .tabs{position:fixed; left:0; right:0; bottom:0; z-index:40; display:grid; grid-template-columns:repeat(5,1fr);
+    background:var(--bar); -webkit-backdrop-filter:saturate(1.6) blur(18px); backdrop-filter:saturate(1.6) blur(18px);
+    border-top:.5px solid var(--line); padding:6px 4px calc(var(--safe-b) + 4px)}
+  .tabs button{border:none; background:none; display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0;
+    color:var(--muted); font-size:.68rem; font-weight:600; cursor:pointer; min-height:var(--tabbar)}
+  .tabs button svg{width:25px; height:25px}
+  .tabs button.on{color:var(--accent)}
+  .tabs button > span{display:block}
+  .tabs .tab-amt{display:none}
+
+  /* ---------- 월 이동 ---------- */
+  .mnav{display:flex; align-items:center; gap:2px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:3px}
+  .mnav button{width:34px; height:32px; border:none; background:none; color:var(--ink2); border-radius:9px; font-size:1.15rem; line-height:1; cursor:pointer}
+  .mnav button:active{background:var(--accent-soft)}
+  .mnav span{min-width:96px; text-align:center; font-weight:700; font-size:.95rem}
+
+  /* ---------- 카드 ---------- */
+  .card{background:var(--surface); border-radius:18px; padding:18px 16px; margin-bottom:14px}
+  .card h2{font-size:1.05rem; margin:0 0 14px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; letter-spacing:-.01em}
+  .card h2 small{font-weight:400; color:var(--muted); font-size:.78rem}
+  .card-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap}
+  .card-head h2{margin:0}
+  .subhead{font-size:.85rem; font-weight:700; color:var(--ink2); margin:20px 0 4px; padding-top:16px; border-top:1px solid var(--line-2)}
+  .sec-title{font-size:.8rem; font-weight:600; color:var(--muted); margin:22px 4px 8px; text-transform:uppercase; letter-spacing:.02em}
+
+  /* ---------- 요약(히어로) ---------- */
+  .hero{background:var(--surface); border-radius:22px; padding:20px 18px 16px; margin-bottom:14px}
+  .hero .lb{font-size:.82rem; color:var(--ink2); font-weight:600}
+  .hero > .v{font-size:2.05rem; font-weight:800; letter-spacing:-.035em; margin:2px 0 2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .hero .s{font-size:.78rem; color:var(--muted)}
+  .hero-row{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line-2)}
+  .mini{min-width:0}
+  .mini .lb{font-size:.74rem; font-weight:600; display:flex; align-items:center; gap:5px; color:var(--ink2)}
+  .mini .lb i{width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0}
+  .mini.t-income .lb i{background:var(--income)} .mini.t-spend .lb i{background:var(--spendc)} .mini.t-save .lb i{background:var(--savec)}
+  .mini .v{font-size:.95rem; font-weight:750; letter-spacing:-.025em; margin-top:3px; line-height:1.3; word-break:break-all}
+  .mini .s{font-size:.68rem; color:var(--muted); margin-top:2px; line-height:1.35}
+  .hero-notes{margin-top:12px; display:grid; gap:6px}
+  .hero-notes > div:empty{display:none}
+  .hero-notes > div{font-size:.8rem; color:var(--ink2); background:var(--surface-2); border-radius:10px; padding:8px 11px}
+
+  /* ---------- 결제수단 / 범례 ---------- */
+  .split{display:flex; height:10px; border-radius:5px; overflow:hidden; gap:2px; background:var(--line-2); margin:10px 0}
+  .split div{height:100%}
+  .legend{display:flex; gap:14px; font-size:.84rem; color:var(--ink2); flex-wrap:wrap}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; vertical-align:0}
+
+  /* ---------- 폼 ---------- */
+  .form{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .form > .wide, .form > .btn, .form > .btn-line.big{grid-column:1 / -1}
+  label{display:block; font-size:.76rem; color:var(--ink2); margin-bottom:6px; font-weight:600}
+  input,select{width:100%; height:46px; padding:0 13px; border:1px solid transparent; border-radius:12px; -webkit-appearance:none; appearance:none;
+    font:inherit; font-size:16px; color:var(--ink); background:var(--field); outline:none}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 17px) 20px, calc(100% - 12px) 20px; background-size:5px 5px; background-repeat:no-repeat; padding-right:30px}
+  input:focus,select:focus{border-color:var(--accent); background-color:var(--surface)}
+  input[type="date"],input[type="month"]{line-height:46px}
+  input.money{text-align:right; font-weight:700}
+  .btn{height:50px; padding:0 20px; border-radius:14px; border:none; background:var(--accent); color:#fff; font-weight:700; font-size:1rem; cursor:pointer}
+  .btn:active{filter:brightness(.92)}
+  .btn.sell{background:var(--down)}
+  .btn-line{height:36px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink2); font-size:.85rem; font-weight:600; cursor:pointer; white-space:nowrap}
+  .btn-line:active{background:var(--surface-2)}
+  .btn-line.big{height:46px; border-radius:14px}
+  .seg{display:inline-flex; background:var(--surface-2); border-radius:11px; padding:3px; gap:2px}
+  .seg button{border:none; background:none; font-size:.9rem; color:var(--ink2); padding:7px 16px; border-radius:9px; cursor:pointer; font-weight:600}
+  .seg button.on{background:var(--surface); color:var(--ink); font-weight:750; box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .seg button.on[data-t="spend"]{color:var(--spendc)} .seg button.on[data-t="income"]{color:var(--income)} .seg button.on[data-t="save"]{color:var(--savec)}
+  .seg.full{display:flex} .seg.full button{flex:1}
+
+  details.more, details.addbox{margin-top:14px}
+  details > summary{cursor:pointer; list-style:none; font-size:.88rem; color:var(--accent); font-weight:600; display:flex; align-items:center; gap:6px; user-select:none; -webkit-user-select:none}
+  details > summary::-webkit-details-marker{display:none}
+  details.more > summary{color:var(--ink2)}
+  details.more > summary::before{content:'›'; font-size:1.1rem; transition:transform .15s; display:inline-block}
+  details.more[open] > summary::before{transform:rotate(90deg)}
+  details.more[open] > summary{margin-bottom:10px}
+  details.addbox{background:var(--surface-2); border-radius:14px; padding:13px 14px}
+  details.addbox[open] > summary{margin-bottom:14px}
+  .card.editing{box-shadow:0 0 0 2px var(--accent)}
+
+  /* ---------- 차트 ---------- */
+  .chart{position:relative; margin:0 -4px}
+  .chart svg{width:100%; height:auto; display:block}
+  .tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--surface); font-size:.76rem; padding:7px 10px;
+    border-radius:9px; white-space:nowrap; transform:translate(-50%,-100%); opacity:0; transition:opacity .1s; z-index:2}
+  .hbar{display:grid; grid-template-columns:72px 1fr auto; align-items:center; gap:10px; padding:6px 0; font-size:.88rem}
+  .hbar > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hbar .track{height:8px; background:var(--line-2); border-radius:4px}
+  .hbar .fill{height:100%; background:var(--accent); border-radius:4px}
+  .hbar .val{text-align:right; font-weight:700; white-space:nowrap; font-size:.86rem}
+  .hbar .val small{color:var(--muted); margin-left:4px; font-weight:400}
+  #aComp .hbar{grid-template-columns:96px 1fr auto}
+
+  /* ---------- 예산 ---------- */
+  #budgetBars{display:grid; gap:4px}
+  .bud{padding:7px 0}
+  .bud-top{display:flex; justify-content:space-between; gap:10px; font-size:.88rem}
+  .bud.total .bud-top{font-weight:700; font-size:.92rem}
+  .bud-track{height:8px; background:var(--line-2); border-radius:4px; margin:7px 0 5px; overflow:hidden}
+  .bud.total .bud-track{height:12px; border-radius:6px}
+  .bud-fill{height:100%; background:var(--accent); border-radius:inherit}
+  .bud.warn .bud-fill{background:var(--warn)} .bud.over .bud-fill{background:var(--up)}
+  .bud-note{font-size:.76rem; color:var(--muted)}
+  .bud.warn .bud-note{color:var(--warn); font-weight:600} .bud.over .bud-note{color:var(--up); font-weight:600}
+
+  /* ---------- 표 (기본) ---------- */
+  .tbl-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px}
+  table{width:100%; border-collapse:collapse; font-size:.84rem}
+  th{color:var(--muted); font-weight:600; font-size:.74rem; text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); white-space:nowrap}
+  td{padding:10px 6px; border-bottom:1px solid var(--line-2); vertical-align:middle; white-space:nowrap}
+  td.r, th.r{text-align:right}
+  tr:last-child td{border-bottom:none}
+  tr.total td{font-weight:700; border-top:1px solid var(--line); background:var(--surface-2)}
+  tr.zero td{color:var(--muted)}
+  .tag{display:inline-block; font-size:.7rem; padding:2px 7px; border-radius:6px; background:var(--accent-soft); color:var(--accent); font-weight:700; white-space:nowrap}
+  .tag.income{background:color-mix(in srgb, var(--income) 14%, transparent); color:var(--income)}
+  .tag.spend{background:color-mix(in srgb, var(--spendc) 12%, transparent); color:var(--spendc)}
+  .tag.save{background:color-mix(in srgb, var(--savec) 13%, transparent); color:var(--savec)}
+  .tag.fixed{background:transparent; color:var(--ink2); box-shadow:inset 0 0 0 1px var(--line)}
+  .x{border:none; background:var(--surface-2); color:var(--ink2); cursor:pointer; font-size:.76rem; font-weight:600; padding:6px 9px; border-radius:8px; white-space:nowrap; margin-left:4px}
+  .x:active{background:var(--accent-soft)}
+  .empty{text-align:center; color:var(--muted); padding:26px 8px !important; font-size:.88rem; white-space:normal !important}
+  .sub2{display:block; color:var(--muted); font-size:.72rem; font-weight:400; margin-top:1px}
+  .sub2.up{color:var(--up)} .sub2.down{color:var(--down)}
+  .note{font-size:.8rem; color:var(--muted); margin:12px 0 0; line-height:1.65}
+  .note a{color:var(--accent)}
+  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .toolbar select{width:auto; height:36px; font-size:.85rem; padding:0 30px 0 12px; border-radius:10px; background-position:calc(100% - 15px) 15px, calc(100% - 10px) 15px}
+  .qsum{margin:14px 0 4px; font-size:.84rem; color:var(--ink2); display:flex; gap:4px 12px; flex-wrap:wrap}
+  .qsum b{color:var(--ink)}
+
+  /* ---------- 표 → 아이폰 목록 ---------- */
+  .list table, .list tbody{display:block}
+  .list tr:has(th){display:none}
+  .list tr{display:flex; flex-wrap:wrap; align-items:center; gap:3px 8px; padding:12px 2px; border-bottom:1px solid var(--line-2)}
+  .list tr:last-child{border-bottom:none}
+  .list td{display:block; padding:0; border:0; white-space:nowrap; text-align:left}
+  .list td.empty{flex:1}
+  .list tr::before, .list tr::after{content:''; flex-basis:100%; height:0}
+  .list .meta{font-size:.76rem; color:var(--muted)}
+
+  /* 내역 · 검색: 날짜 구분 항목 메모 결제 통장 금액 버튼 */
+  .list.tx td:nth-child(2){order:1}
+  .list.tx td:nth-child(3){order:2; flex:1; font-weight:650; overflow:hidden; text-overflow:ellipsis; min-width:0}
+  .list.tx td:nth-child(7){order:3; font-weight:750; font-size:.95rem}
+  .list.tx tr::before{order:4}
+  .list.tx td:nth-child(1){order:5; font-size:.76rem; color:var(--muted)}
+  .list.tx td:nth-child(4){order:6; font-size:.76rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; max-width:34%}
+  .list.tx td:nth-child(5){order:7; font-size:.76rem; color:var(--muted)}
+  .list.tx td:nth-child(6){order:8; font-size:.76rem; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; min-width:0}
+  .list.tx td:nth-child(8){order:9}
+  .list.tx tr::after{display:none}
+  .list.tx td:nth-child(4):empty, .list.tx td:nth-child(4):has(.muted:only-child),
+  .list.tx td:nth-child(5):has(.muted:only-child), .list.tx td:nth-child(6):has(.muted:only-child){display:none}
+  .list.tx td:nth-child(4):not(:empty) ~ td:nth-child(5)::before, .list.tx td:nth-child(5) ~ td:nth-child(6)::before{content:'· '}
+
+  /* 보유 종목: 종목 수량 평단 현재가 평가 손익 버튼 */
+  .list.hold td:nth-child(1){order:1; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:.95rem}
+  .list.hold td:nth-child(5){order:2; font-weight:750; font-size:.98rem; text-align:right}
+  .list.hold tr::before{order:3}
+  .list.hold td:nth-child(2){order:4; font-size:.78rem; color:var(--ink2)}
+  .list.hold td:nth-child(2)::before{content:'보유 '; color:var(--muted)}
+  .list.hold td:nth-child(2) .x{display:inline !important; margin-left:8px !important; padding:3px 7px !important; font-size:.72rem}
+  .list.hold td:nth-child(3){order:5; font-size:.78rem; color:var(--ink2); flex:1}
+  .list.hold td:nth-child(3)::before{content:'· 평단 '; color:var(--muted)}
+  .list.hold td:nth-child(6){order:6; text-align:right; font-weight:700; font-size:.88rem}
+  .list.hold td:nth-child(6) .sub2{display:inline; margin-left:4px}
+  .list.hold tr::after{order:7}
+  .list.hold td:nth-child(4){order:8; flex:1; font-size:.8rem}
+  .list.hold td:nth-child(4)::before{content:'현재가 '; color:var(--muted)}
+  .list.hold td:nth-child(4) .sub2{display:inline; margin-left:4px}
+  .list.hold td:nth-child(5) .sub2{display:none}
+  .list.hold td:nth-child(7){order:9}
+
+  /* 통장: 이름 종류 잔고 입출금 기준일 버튼 */
+  .list.acct td:nth-child(1){order:1; font-size:.95rem}
+  .list.acct td:nth-child(2){order:2; flex:1}
+  .list.acct td:nth-child(3){order:3; font-size:.98rem}
+  .list.acct tr::before{order:4}
+  .list.acct td:nth-child(4){order:5; font-size:.78rem}
+  .list.acct td:nth-child(4)::before{content:'이번 달 '; color:var(--muted)}
+  .list.acct td:nth-child(5){order:6; font-size:.74rem; flex:1}
+  .list.acct td:nth-child(5)::before{content:'· 기준 '}
+  .list.acct td:nth-child(6){order:7}
+  .list.acct tr::after{display:none}
+
+  /* 고정 항목: 이름 분류 결제일 수단 기간 금액 버튼 */
+  .list.fixed td:nth-child(1){order:1; font-weight:650}
+  .list.fixed td:nth-child(2){order:2; flex:1}
+  .list.fixed td:nth-child(2) .sub2{display:none}
+  .list.fixed td:nth-child(6){order:3; font-weight:750}
+  .list.fixed tr::before{order:4}
+  .list.fixed td:nth-child(3){order:5; font-size:.76rem; color:var(--muted)}
+  .list.fixed td:nth-child(4){order:6; font-size:.76rem; color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis}
+  .list.fixed td:nth-child(4) .sub2{display:inline; margin-left:3px}
+  .list.fixed td:nth-child(5){display:none}
+  .list.fixed td:nth-child(7){order:7}
+  .list.fixed tr::after{display:none}
+
+  /* 매도 기록: 날짜 종목 수량 매도가 평단 금액 손익 통장 버튼 */
+  .list.real td:nth-child(2){order:1; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis}
+  .list.real td:nth-child(2) .sub2{display:none}
+  .list.real td:nth-child(7){order:2; font-weight:750; text-align:right}
+  .list.real td:nth-child(7) .sub2{display:inline; margin-left:4px}
+  .list.real tr::before{order:3}
+  .list.real td:nth-child(1){order:4; font-size:.76rem; color:var(--muted)}
+  .list.real td:nth-child(3){order:5; font-size:.76rem; color:var(--muted)}
+  .list.real td:nth-child(3)::after{content:'주'}
+  .list.real td:nth-child(4){order:6; font-size:.76rem; color:var(--muted)}
+  .list.real td:nth-child(4)::before{content:'× '}
+  .list.real td:nth-child(5), .list.real td:nth-child(6){display:none}
+  .list.real td:nth-child(8){order:7; font-size:.76rem; color:var(--muted); flex:1}
+  .list.real td:nth-child(9){order:8}
+  .list.real tr::after{display:none}
+
+  /* ---------- 기록 시트 · ＋ 버튼 ---------- */
+  .fab{position:fixed; right:18px; bottom:calc(var(--tabbar) + var(--safe-b) + 22px); z-index:35; width:58px; height:58px; border-radius:50%;
+    border:none; background:var(--accent); color:#fff; font-size:2rem; line-height:1; box-shadow:0 8px 22px rgba(51,102,230,.38); cursor:pointer}
+  .fab:active{transform:scale(.94)}
+  .sheet-bg{position:fixed; inset:0; z-index:60; background:rgba(10,12,16,.38); opacity:0; pointer-events:none; transition:opacity .22s}
+  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:61; background:var(--surface); border-radius:22px 22px 0 0;
+    max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; transform:translateY(105%); transition:transform .28s cubic-bezier(.2,.8,.2,1);
+    padding:8px 18px calc(var(--safe-b) + 18px)}
+  .sheet.open{transform:none}
+  .sheet-bg.open{opacity:1; pointer-events:auto}
+  .grabber{width:38px; height:5px; border-radius:3px; background:var(--line); margin:4px auto 12px}
+  .sheet .card{padding:4px 0 0; margin:0; background:none}
+  .sheet-close{border:none; background:var(--surface-2); color:var(--ink2); width:32px; height:32px; border-radius:50%; font-size:.95rem; cursor:pointer}
+  #entryForm > div:has(#eAmount){order:-1; grid-column:1 / -1}
+  #entryForm > div:has(#eAmount) input{height:62px; font-size:1.7rem; border-radius:16px}
+  #entryForm > div:has(#eMemo){grid-column:1 / -1}
+
+  /* ---------- 설정 ---------- */
+  .group{background:var(--surface); border-radius:16px; overflow:hidden; margin-bottom:8px}
+  .row{display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line-2); width:100%; background:none; border-left:0; border-right:0; border-top:0; text-align:left; font-size:.95rem; cursor:pointer}
+  .row:last-child{border-bottom:none}
+  .row:active{background:var(--surface-2)}
+  .row .ic{width:30px; height:30px; border-radius:8px; display:grid; place-items:center; color:#fff; flex-shrink:0; font-size:.95rem}
+  .row .tx{flex:1; min-width:0}
+  .row .tx small{display:block; color:var(--muted); font-size:.76rem; margin-top:1px}
+  .row .chev{color:var(--muted); font-size:1.2rem}
+  .steps{margin:0; padding-left:20px; font-size:.86rem; color:var(--ink2); line-height:1.8}
+
+  /* ---------- 관리자 모드 (전체 화면 시트) ---------- */
+  .modal{position:fixed; inset:0; z-index:70; background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch}
+  .modal[hidden]{display:none}
+  .modal-box{min-height:100%; display:flex; flex-direction:column}
+  .modal-head{position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:calc(var(--safe-t) + 12px) 18px 12px; background:var(--bar); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); border-bottom:.5px solid var(--line)}
+  .modal-head h2{margin:0; font-size:1.15rem; font-weight:800}
+  .modal-head h2 small{display:block; font-weight:400; color:var(--muted); font-size:.76rem}
+  .modal-body{padding:4px 16px 16px; flex:1}
+  .modal-body h3{font-size:.8rem; color:var(--muted); font-weight:600; margin:20px 4px 8px}
+  .modal-body section > div{background:var(--surface); border-radius:16px; padding:14px}
+  .modal-foot{position:sticky; bottom:0; display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px 16px calc(var(--safe-b) + 12px); background:var(--bar);
+    -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); border-top:.5px solid var(--line)}
+  .modal-foot > span{display:none}
+  .modal-foot #adReset{grid-column:1 / -1; order:3; border:none; background:none; color:var(--up)}
+  .modal-foot .btn, .modal-foot .btn-line{height:48px}
+  .label-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .ad-lists{display:grid; gap:14px}
+  .ad-list{border-bottom:1px solid var(--line-2); padding-bottom:14px}
+  .ad-list:last-child{border-bottom:none; padding-bottom:0}
+  .ad-list b{display:block; font-size:.85rem; margin-bottom:10px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px}
+  .chip{display:inline-flex; align-items:center; gap:2px; background:var(--accent-soft); color:var(--ink); border-radius:8px; padding:4px 4px 4px 11px; font-size:.86rem}
+  .chip button{border:none; background:none; color:var(--muted); cursor:pointer; font-size:.84rem; padding:4px 6px; border-radius:5px}
+  .ad-add{display:flex; gap:6px}
+  .ad-add input{height:40px; min-width:0}
+  .ad-add button{flex-shrink:0; height:40px}
+
+  .toast{position:fixed; left:16px; right:16px; bottom:calc(var(--tabbar) + var(--safe-b) + 18px); z-index:80; background:var(--ink); color:var(--surface);
+    padding:13px 16px; border-radius:14px; font-size:.88rem; text-align:center; opacity:0; transform:translateY(12px); pointer-events:none; transition:all .2s; box-shadow:0 10px 30px rgba(0,0,0,.22)}
+  .toast.show{opacity:1; transform:none}
+
+  /* 큰 화면(아이패드·PC)에서 볼 때는 가운데 정렬 */
+  @media (min-width:700px){
+    .wrap, .appbar-in{max-width:640px; margin-left:auto; margin-right:auto}
+    .tabs{padding-left:calc(50% - 320px); padding-right:calc(50% - 320px)}
+    .sheet{max-width:640px; margin:0 auto}
+  }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-in">
+    <div style="min-width:0">
+      <h1 id="title">가계부</h1>
+      <span class="savestate" id="saveState"></span>
+    </div>
+    <div class="mnav" id="mnav">
+      <button id="prev" aria-label="이전 달">‹</button>
+      <span id="mlabel"></span>
+      <button id="next" aria-label="다음 달">›</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ================= 가계부 ================= -->
+  <div id="ledgerView">
+    <div class="hero">
+      <div class="lb" data-l="left">남은 돈</div>
+      <div class="big num v" id="tLeft"></div>
+      <div class="s"><span data-l="income">수입</span> − <span data-l="spend">지출</span> − <span data-l="save">저축</span></div>
+      <div class="hero-row">
+        <div class="mini t-income"><div class="lb"><i></i><span data-l="income">수입</span></div><div class="v num" id="tIncome"></div><div class="s" id="tIncomeS"></div></div>
+        <div class="mini t-spend"><div class="lb"><i></i><span data-l="spend">지출</span></div><div class="v num" id="tSpend"></div><div class="s num" id="tSpendS"></div></div>
+        <div class="mini t-save"><div class="lb"><i></i><span data-l="save">저축</span></div><div class="v num" id="tSave"></div><div class="s" id="tSaveS"></div></div>
+      </div>
+      <div class="hero-notes">
+        <div class="num" id="compare"></div>
+        <div class="num" id="tBudget"></div>
+      </div>
+    </div>
+    <span id="compareSub" hidden></span>
+
+    <div class="card">
+      <h2><span>이번 달 예산</span> <small id="budgetSum"></small></h2>
+      <div id="budgetBars"></div>
+      <details class="addbox" id="budgetEdit"><summary>예산 설정</summary>
+        <div class="form" id="budgetForm"></div>
+        <div class="toolbar" style="margin-top:14px"><button class="btn" id="budgetSave" type="button" style="flex:1">저장</button></div>
+        <p class="note" style="margin-top:8px">비워 두면 그 항목은 예산 없음</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>내역
+        <span class="toolbar">
+          <select id="lFilter">
+            <option value="all">전체</option><option value="income" data-l="income">수입</option>
+            <option value="spend" data-l="spend">지출</option><option value="fixed" data-l="fixed">고정 지출</option><option value="save" data-l="save">저축</option>
+          </select>
+        </span>
+      </h2>
+      <div class="list tx"><table class="num" id="listTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2><span>항목별 <span data-l="spend">지출</span></span> <small id="catLabel"></small></h2>
+      <div id="catBars"></div>
+      <div class="subhead">결제수단</div>
+      <div class="split" id="split"></div>
+      <div class="legend num" id="splitLegend"></div>
+    </div>
+
+    <div class="card">
+      <h2><span>월별 <span data-l="spend">지출</span></span> <small>막대를 누르면 그 달로 이동</small></h2>
+      <div class="chart" id="chart"></div>
+      <details class="more"><summary>표로 보기</summary>
+        <div class="tbl-scroll"><table class="num" id="monthTable"></table></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2><span data-l="fixed">고정 지출</span> <small id="fixedTotal"></small></h2>
+      <div class="list fixed"><table class="num" id="fixedTable"></table></div>
+      <details class="addbox" id="fixedAdd"><summary>＋ 새로 등록하기</summary>
+        <form class="form f-fixed" id="fixedForm">
+          <div class="wide"><label>이름</label><input type="text" id="fName" maxlength="30" placeholder="예) 넷플릭스" required></div>
+          <div><label>분류</label><select id="fCat"></select></div>
+          <div><label>월 금액 (원)</label><input type="text" id="fAmount" class="money num" inputmode="numeric" placeholder="0" required></div>
+          <div><label>결제일</label><input type="number" id="fDay" min="1" max="31" value="1" inputmode="numeric" required></div>
+          <div id="fMethodWrap"><label>결제수단</label>
+            <select id="fMethod"><option value="card" data-l="card">카드</option><option value="cash" data-l="cash">현금</option></select></div>
+          <div id="fAcctWrap"><label>출금 통장</label><select id="fAcct"></select></div>
+          <div id="fToWrap"><label>입금 통장</label><select id="fTo"></select></div>
+          <div class="wide"><label>시작 월</label><input type="month" id="fStart" required></div>
+          <button class="btn" type="submit" id="fSubmit">등록</button>
+          <button class="btn-line big hide" type="button" id="fCancel">취소</button>
+        </form>
+      </details>
+    </div>
+  </div>
+
+  <!-- ================= 자산 ================= -->
+  <div id="assetView" hidden>
+    <div class="hero">
+      <div class="lb">총 자산</div>
+      <div class="big num v" id="aTotal"></div>
+      <div class="s" id="aTotalS"></div>
+      <div class="hero-row">
+        <div class="mini t-save"><div class="lb"><i></i>통장</div><div class="v num" id="aBank"></div><div class="s num" id="aBankS"></div></div>
+        <div class="mini t-income"><div class="lb"><i></i>주식</div><div class="v num" id="aStock"></div><div class="s num" id="aStockS"></div></div>
+        <div class="mini"><div class="lb"><i></i>지난달 대비</div><div class="v num" id="aChg"></div><div class="s num" id="aChgS"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>자산 구성</h2>
+      <div id="aComp"></div>
+    </div>
+
+    <div class="card">
+      <h2>내 통장 <small>기록이 잔고에 자동 반영</small></h2>
+      <div class="list acct"><table class="num" id="acctTable"></table></div>
+      <details class="addbox" id="acctAdd"><summary>＋ 통장 추가하기</summary>
+        <form class="form f-acct" id="acctForm">
+          <div class="wide"><label>통장 이름</label><input type="text" id="aName" maxlength="20" placeholder="예) 생활비 통장" required></div>
+          <div><label>종류</label><select id="aKind"></select></div>
+          <div><label id="aBalLb">지금 잔고 (원)</label><input type="text" id="aBal" class="money num" inputmode="numeric" placeholder="0"></div>
+          <button class="btn" type="submit" id="aSubmit">추가</button>
+          <button class="btn-line big hide" type="button" id="aCancel">취소</button>
+        </form>
+      </details>
+      <details class="more"><summary>잔고가 어떻게 계산되나요?</summary>
+        <p class="note" style="margin-top:0">
+          <b><span data-l="income">수입</span>은 입금 통장에 더하고</b>, <b><span data-l="spend">지출</span>은 출금 통장에서 빼고</b>, <b><span data-l="save">저축</span>과 <span data-l="fixed">고정 지출</span>은 설정한 통장 사이에서 옮겨요</b>.
+          실제 잔고와 다르면 <b>잔고 맞추기</b>로 언제든 고칠 수 있어요. 증권 통장에는 예수금(현금)만 넣어 주세요.
+        </p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>일별 총 자산 <small>최근 30일</small></h2>
+      <div class="chart" id="aDChart"></div>
+    </div>
+
+    <div class="card">
+      <h2>월별 자산 <small>월말 기준</small></h2>
+      <div class="chart" id="aMChart"></div>
+      <details class="more"><summary>표로 보기</summary>
+        <div class="tbl-scroll"><table class="num" id="aMTable"></table></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ================= 주식 ================= -->
+  <div id="stockView" hidden>
+    <div class="hero">
+      <div class="lb">총 평가금액</div>
+      <div class="big num v" id="sValue"></div>
+      <div class="s num" id="sValueS"></div>
+      <div class="hero-row">
+        <div class="mini"><div class="lb"><i></i>오늘</div><div class="v num" id="sDay"></div><div class="s num" id="sDayS"></div></div>
+        <div class="mini"><div class="lb"><i></i>총 손익</div><div class="v num" id="sPL"></div><div class="s num" id="sPLS"></div></div>
+        <div class="mini"><div class="lb"><i></i>매수금액</div><div class="v num" id="sCost"></div><div class="s num" id="sCostS"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>보유 종목 <small id="sStatus"></small></h2>
+      <div class="list hold"><table class="num" id="holdTable"></table></div>
+      <details class="addbox" id="stockAdd"><summary>＋ 매수 · 매도 기록</summary>
+        <div class="seg full" id="hModeSeg" style="margin-bottom:14px">
+          <button type="button" data-m="buy" class="on">매수</button>
+          <button type="button" data-m="sell">매도</button>
+        </div>
+        <form class="form f-stock" id="stockForm">
+          <div id="hMktWrap"><label>시장</label>
+            <select id="hMkt"><option value="US">미국</option><option value="KR">국내</option></select></div>
+          <div id="hSymWrap"><label id="hSymLb">티커 (영문)</label><input type="text" id="hSym" maxlength="40" list="krList" autocomplete="off" autocapitalize="characters" placeholder="예) AAPL"><datalist id="krList"></datalist></div>
+          <div class="wide hide" id="hSellWrap"><label>종목</label><select id="hSell"></select></div>
+          <div><label id="hQtyLb">매수 수량 (주)</label><input type="number" id="hQty" step="any" min="0" inputmode="decimal" placeholder="0"></div>
+          <div><label id="hAvgLb">매수 단가 ($)</label><input type="number" id="hAvg" step="any" min="0" inputmode="decimal" placeholder="0"></div>
+          <div class="wide hide" id="hAcctWrap"><label>판 돈 입금 통장 (선택)</label><select id="hAcct"></select></div>
+          <button class="btn" type="submit" id="hSubmit">추가</button>
+          <button class="btn-line big hide" type="button" id="hCancel">취소</button>
+        </form>
+        <p class="note">이미 가진 종목을 다시 입력하면 <b>추가 매수</b>로 합쳐지고 평균 매수가가 다시 계산돼요. 국내 종목은 6자리 종목코드로 입력하고 현재가를 직접 입력해요.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2><span>매도 기록</span> <small id="realSum"></small></h2>
+      <div class="list real"><table class="num" id="realTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>일별 주식 자산 <small>최근 30일</small></h2>
+      <div class="chart" id="dChart"></div>
+      <details class="more"><summary>표로 보기</summary>
+        <div class="tbl-scroll"><table class="num" id="dTable"></table></div>
+      </details>
+    </div>
+    <div class="card">
+      <h2>월별 주식 자산 <small>월말 기준</small></h2>
+      <div class="chart" id="mChart"></div>
+      <details class="more"><summary>표로 보기</summary>
+        <div class="tbl-scroll"><table class="num" id="mTable"></table></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ================= 리포트 ================= -->
+  <div id="reportView" hidden>
+    <div style="display:flex; justify-content:center; margin:0 0 14px">
+      <div class="mnav">
+        <button id="yPrev" aria-label="이전 해">‹</button>
+        <span id="yLabel"></span>
+        <button id="yNext" aria-label="다음 해">›</button>
+      </div>
+    </div>
+    <div class="hero">
+      <div class="lb">연간 <span data-l="left">남은 돈</span></div>
+      <div class="big num v" id="rLeft"></div>
+      <div class="s num" id="rLeftS"></div>
+      <div class="hero-row">
+        <div class="mini t-income"><div class="lb"><i></i><span data-l="income">수입</span></div><div class="v num" id="rIncome"></div><div class="s num" id="rIncomeS"></div></div>
+        <div class="mini t-spend"><div class="lb"><i></i><span data-l="spend">지출</span></div><div class="v num" id="rSpend"></div><div class="s num" id="rSpendS"></div></div>
+        <div class="mini t-save"><div class="lb"><i></i><span data-l="save">저축</span></div><div class="v num" id="rSave"></div><div class="s num" id="rSaveS"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span>월별 <span data-l="spend">지출</span></span> <small>막대를 누르면 그 달로 이동</small></h2>
+      <div class="chart" id="rChart"></div>
+    </div>
+    <div class="card">
+      <h2><span>항목별 <span data-l="spend">지출</span></span> <small id="rCatLabel"></small></h2>
+      <div id="rCats"></div>
+    </div>
+    <div class="card">
+      <h2>월별 요약</h2>
+      <div class="tbl-scroll"><table class="num" id="rTable"></table></div>
+    </div>
+    <div class="card">
+      <h2>기간 조회 · 검색</h2>
+      <form class="form" id="qForm" onsubmit="return false">
+        <div class="wide"><label>검색어 (항목 · 메모 · 금액 · 통장)</label><input type="search" id="qText" placeholder="예) 식비, 점심, 12000"></div>
+        <div><label>시작일</label><input type="date" id="qFrom"></div>
+        <div><label>종료일</label><input type="date" id="qTo"></div>
+        <div class="wide"><label>구분</label>
+          <select id="qType"><option value="all">전체</option><option value="income" data-l="income">수입</option><option value="spend" data-l="spend">지출</option><option value="save" data-l="save">저축</option><option value="fixed" data-l="fixed">고정 지출</option></select></div>
+      </form>
+      <div class="toolbar" id="qQuick" style="margin-top:12px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px">
+        <button class="btn-line" type="button" data-r="month">이번 달</button>
+        <button class="btn-line" type="button" data-r="prev">지난달</button>
+        <button class="btn-line" type="button" data-r="3m">최근 3개월</button>
+        <button class="btn-line" type="button" data-r="year">올해</button>
+        <button class="btn-line" type="button" data-r="all">전체</button>
+      </div>
+      <div class="qsum num" id="qSum"></div>
+      <div class="list tx"><table class="num" id="qTable"></table></div>
+    </div>
+  </div>
+
+  <!-- ================= 설정 ================= -->
+  <div id="settingsView" hidden>
+    <div class="sec-title">데이터</div>
+    <div class="group">
+      <button class="row" id="backupBtn" type="button"><span class="ic" style="background:#3366e6">⇪</span><span class="tx">백업 파일 저장<small>PC나 다른 기기로 옮길 때 · 가끔 보관용으로</small></span><span class="chev">›</span></button>
+      <button class="row" id="restoreBtn" type="button"><span class="ic" style="background:#13855c">⇩</span><span class="tx">백업 불러오기<small>PC에서 저장한 백업 파일로 기록 옮기기</small></span><span class="chev">›</span></button>
+      <button class="row" id="csv" type="button"><span class="ic" style="background:#8a919b">≡</span><span class="tx">CSV로 내보내기<small>엑셀에서 열 수 있는 파일</small></span><span class="chev">›</span></button>
+    </div>
+    <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    <p class="note" style="margin:6px 6px 0">기록은 이 아이폰 안에만 저장돼요. 앱을 지우거나 Safari 방문 기록·웹사이트 데이터를 지우면 함께 사라지니, 가끔 백업 파일을 저장해 두세요.</p>
+
+    <div class="sec-title">관리</div>
+    <div class="group">
+      <button class="row" id="adminBtn" type="button"><span class="ic" style="background:#5b5fc7">⚙</span><span class="tx">관리자 모드<small>항목 · 용어 · 통장 종류 바꾸기</small></span><span class="chev">›</span></button>
+    </div>
+
+    <div class="sec-title">주식 시세</div>
+    <div class="card">
+      <form class="form f-cfg" id="cfgForm">
+        <div class="wide"><label>Finnhub API 키 (미국 주식)</label><input type="password" id="cKey" autocomplete="off" placeholder="PC 백업을 불러오면 자동 입력돼요"></div>
+        <div class="wide"><label>환율 직접 입력 (선택, 원/$)</label><input type="number" id="cFx" step="any" min="0" inputmode="decimal" placeholder="비우면 자동"></div>
+        <button class="btn" type="submit">저장</button>
+      </form>
+      <p class="note">미국 주식은 1분마다 자동 갱신돼요. 국내 주식은 앱에서 시세를 받을 수 없어 현재가를 직접 입력해요.</p>
+    </div>
+
+    <div class="sec-title">홈 화면에 설치하기</div>
+    <div class="card">
+      <ol class="steps">
+        <li>Safari에서 이 주소를 열어요</li>
+        <li>아래 <b>공유 버튼</b>(□↑)을 눌러요</li>
+        <li><b>홈 화면에 추가</b>를 선택해요</li>
+        <li><b>웹 앱으로 열기</b>를 켜고 <b>추가</b>를 눌러요</li>
+        <li>홈 화면의 <b>MY MONEY</b> 아이콘으로 실행해요</li>
+      </ol>
+      <p class="note" id="appInfo"></p>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab" type="button" aria-label="기록하기">＋</button>
+
+<nav class="tabs" id="tabs">
+  <button type="button" data-v="ledger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span data-l="app">가계부</span></button>
+  <button type="button" data-v="asset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l2-3h14l2 3"/><circle cx="16" cy="14" r="1.6"/></svg><span data-l="tabAsset">자산</span><span class="tab-amt" id="tabAsset"></span></button>
+  <button type="button" data-v="stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg><span data-l="tabStock">주식</span><span class="tab-amt" id="tabStock"></span></button>
+  <button type="button" data-v="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg><span data-l="tabReport">리포트</span></button>
+  <button type="button" data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>설정</span></button>
+</nav>
+
+<!-- 기록하기 시트 -->
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="entrySheet" role="dialog" aria-labelledby="entryTitle">
+  <div class="grabber"></div>
+  <div class="card">
+    <div class="card-head">
+      <h2 id="entryTitle">기록하기</h2>
+      <button class="sheet-close" id="sheetClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="seg full" id="eTypeSeg" style="margin-bottom:16px">
+      <button type="button" data-t="spend"><span data-l="spend">지출</span></button>
+      <button type="button" data-t="income"><span data-l="income">수입</span></button>
+      <button type="button" data-t="save"><span data-l="save">저축</span></button>
+    </div>
+    <form class="form f-entry" id="entryForm">
+      <select id="eType" hidden><option value="spend" data-l="spend">지출</option><option value="income" data-l="income">수입</option><option value="save" data-l="save">저축</option></select>
+      <div><label>날짜</label><input type="date" id="eDate" required></div>
+      <div><label>항목</label><select id="eCat"></select></div>
+      <div id="eMethodWrap"><label>결제수단</label>
+        <select id="eMethod"><option value="card" data-l="card">카드</option><option value="cash" data-l="cash">현금</option></select></div>
+      <div id="eAcctWrap"><label id="eAcctLb">출금 통장</label><select id="eAcct"></select></div>
+      <div id="eToWrap"><label>입금 통장</label><select id="eTo"></select></div>
+      <div><label>금액 (원)</label><input type="text" id="eAmount" class="money num" inputmode="numeric" placeholder="0" required></div>
+      <div class="wide"><label>메모 (선택)</label><input type="text" id="eMemo" maxlength="40" placeholder="예) 점심"></div>
+      <button class="btn" type="submit" id="eSubmit">추가</button>
+      <button class="btn-line big hide" type="button" id="eCancel">취소</button>
+    </form>
+  </div>
+</div>
+
+<!-- 관리자 모드 -->
+<div class="modal" id="adminModal" hidden>
+  <div class="modal-box" role="dialog" aria-labelledby="adminTitle">
+    <div class="modal-head">
+      <h2 id="adminTitle">관리자 모드 <small>항목과 용어를 원하는 대로</small></h2>
+      <button class="sheet-close" id="adminClose" type="button" title="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <section><h3>용어</h3><div class="label-grid" id="adLabels"></div></section>
+      <section><h3>가계부 항목</h3><div class="ad-lists" id="adCats"></div></section>
+      <section><h3>고정 항목 분류</h3><div class="ad-lists" id="adFixed"></div></section>
+      <section><h3>통장 종류</h3><div class="ad-lists" id="adKinds"></div></section>
+      <p class="note">항목 이름을 바꾸면 그 항목으로 입력한 <b>기존 기록도 함께 바뀌어요</b>. 항목을 지워도 이미 입력한 기록은 그대로 남아요.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-line" id="adReset" type="button">기본값으로 되돌리기</button>
+      <span></span>
+      <button class="btn-line" id="adCancel" type="button">취소</button>
+      <button class="btn" id="adSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const APP_MODE = true;
+
+let CATS, TYPE_NAME, METHOD_NAME, L;   // 관리자 모드 설정(CONF)에서 채움 → applyConf()
+const KEY_ITEMS = 'cute-ledger-v1', KEY_FIXED = 'ledger-fixed-v1';
+
+const $ = id => document.getElementById(id);
+const won = n => Math.round(n).toLocaleString('ko-KR') + '원';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const toNum = s => Number(String(s).replace(/[^0-9]/g,'')) || 0;
+const nowDate = new Date();
+const today = `${nowDate.getFullYear()}-${pad(nowDate.getMonth()+1)}-${pad(nowDate.getDate())}`;
+const addMonths = (m, d) => { const [y,mo] = m.split('-').map(Number); const t = new Date(y, mo-1+d, 1); return `${t.getFullYear()}-${pad(t.getMonth()+1)}`; };
+const mName = m => { const [y,mo] = m.split('-'); return `${y}년 ${Number(mo)}월`; };
+const lastDay = m => { const [y,mo] = m.split('-').map(Number); return new Date(y, mo, 0).getDate(); };
+
+const load = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch(e) { return []; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} markDirty(); };
+let items = load(KEY_ITEMS);
+let fixed = load(KEY_FIXED);
+let month = today.slice(0,7);
+
+/* ---------- 자동 저장: server.py가 켜져 있으면 폴더의 data.json에 저장 ----------
+   file://로 열어도 127.0.0.1:8765로 저장하므로, 어느 방법으로 열든 같은 데이터를 씀.
+   처음 연결될 때(synced 아님)는 이 브라우저 기록과 파일 기록을 합치고, 이후엔 더 최근 쪽을 따름. */
+const SERVER = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8765';
+const KEY_META = 'ledger-meta';   // {savedAt, synced}  — 동기화 정보, 데이터 아님
+const isOurKey = k => (k.startsWith('ledger-') || k === KEY_ITEMS) && k !== KEY_META;
+let serverOn = false, syncReady = false, pushTimer = null;
+const getMeta = () => { try { return JSON.parse(localStorage.getItem(KEY_META)) || {}; } catch(e) { return {}; } };
+const setMeta = m => { try { localStorage.setItem(KEY_META, JSON.stringify(m)); } catch(e) {} };
+function localDump(){
+  const d = {};
+  try { Object.keys(localStorage).filter(isOurKey).forEach(k=> d[k] = localStorage.getItem(k)); } catch(e) {}
+  return d;
+}
+const parse = (s, dflt) => { try { return JSON.parse(s) ?? dflt; } catch(e) { return dflt; } };
+const hasContent = d => [KEY_ITEMS, 'ledger-fixed-v1', 'ledger-accounts-v1', 'ledger-stocks-v1'].some(k=> parse(d[k], []).length);
+function mergeData(srv, loc){
+  const out = {...loc, ...srv};
+  const unionBy = (k, key) => { const m = new Map(); [...parse(loc[k], []), ...parse(srv[k], [])].forEach(x=> m.set(key(x), x)); if (m.size) out[k] = JSON.stringify([...m.values()]); };
+  [KEY_ITEMS, 'ledger-fixed-v1', 'ledger-accounts-v1'].forEach(k=> unionBy(k, x=>x.id));
+  unionBy('ledger-stocks-v1', h=> (h.mkt||'US') + ':' + h.sym);
+  ['ledger-stock-snap-v1', 'ledger-asset-snap-v1'].forEach(k=>{ const o = {...parse(loc[k], {}), ...parse(srv[k], {})}; if (Object.keys(o).length) out[k] = JSON.stringify(o); });
+  return out;
+}
+function setSaveState(s){
+  const el = document.getElementById('saveState'); if (!el) return;
+  el.textContent = {saved:'data.json에 자동 저장됨', saving:'저장 중…', local:'이 브라우저에만 저장 중 · ‘가계부 실행.bat’을 켜면 파일에 자동 저장돼요', error:'⚠ 파일 저장 실패 · ‘가계부 실행.bat’ 창이 켜져 있는지 확인해 주세요'}[s];
+  el.className = 'savestate ' + s;
+}
+function markDirty(){
+  if (!syncReady) return;                 // 시작 시 동기화 전에는 표시하지 않음 (서버의 최신 데이터를 덮지 않도록)
+  setMeta({...getMeta(), savedAt: Date.now()});
+  if (serverOn) { setSaveState('saving'); clearTimeout(pushTimer); pushTimer = setTimeout(pushServer, 400); }
+}
+// 한 창에서는 저장을 한 번에 하나씩만 보내고, 실패하면 잠시 뒤 자동으로 다시 시도
+let pushing = false, pushAgain = false, retryTimer = null;
+async function pushServer(attempt = 0){
+  if (pushing) { pushAgain = true; return; }
+  pushing = true; clearTimeout(retryTimer);
+  let ok = false, stale = false;
+  try {
+    const r = await fetch(SERVER + '/api/data', {method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({savedAt: getMeta().savedAt || Date.now(), data: localDump()})});
+    if (r.ok) { ok = true; stale = !!(await r.json()).stale; }
+  } catch(e) {}
+  pushing = false;
+  if (ok) {
+    setMeta({...getMeta(), synced:true});
+    if (stale) { syncWithServer(); return; }      // 다른 창에서 더 최근에 저장함 → 그 내용을 받아옴
+    if (pushAgain) { pushAgain = false; return pushServer(); }
+    setSaveState('saved');
+  } else if (attempt < 4) {
+    setSaveState('saving');
+    retryTimer = setTimeout(()=> pushServer(attempt + 1), 800 * 2 ** attempt);   // 0.8s, 1.6s, 3.2s, 6.4s
+  } else {
+    setSaveState('error');
+    retryTimer = setTimeout(()=> pushServer(0), 30000);                        // 그래도 계속 30초마다 시도
+  }
+}
+function applyData(d, savedAt){
+  try {
+    Object.keys(localStorage).filter(isOurKey).forEach(k=> localStorage.removeItem(k));
+    Object.entries(d).forEach(([k,v])=> isOurKey(k) && localStorage.setItem(k, v));
+  } catch(e) {}
+  setMeta({savedAt, synced:true});
+}
+async function syncWithServer(){
+  if (APP_MODE) { serverOn = false; syncReady = true; setSaveState('local'); return; }
+  let srv;
+  try { const r = await fetch(SERVER + '/api/data', {cache:'no-store'}); if (!r.ok) throw new Error(); srv = await r.json(); }
+  catch(e) { serverOn = false; syncReady = true; setSaveState('local'); return; }
+  serverOn = true;
+  const meta = getMeta(), loc = localDump(), sData = srv.data || {}, sAt = srv.savedAt || 0, lAt = meta.savedAt || 0;
+  if (!hasContent(sData)) {                                   // 파일이 비어 있음 → 이 브라우저 기록을 올림
+    syncReady = true;
+    if (hasContent(loc)) { setMeta({...meta, savedAt: lAt || Date.now()}); await pushServer(); } else setSaveState('saved');
+    return;
+  }
+  if (!meta.synced && hasContent(loc)) {                      // 처음 연결: 합치기
+    const now = Date.now(); applyData(mergeData(sData, loc), now);
+    syncReady = true; await pushServer(); location.reload(); return;
+  }
+  if (!meta.synced || sAt > lAt) { applyData(sData, sAt); location.reload(); return; }   // 파일이 더 최신
+  syncReady = true;
+  if (lAt > sAt) await pushServer(); else setSaveState('saved');
+}
+
+/* ---------- 설정: 용어·항목 (관리자 모드에서 수정, data.json에 같이 저장) ---------- */
+const KEY_CONF = 'ledger-config-v1';
+const DEFAULT_CONF = {
+  labels: {app:'가계부', income:'수입', spend:'지출', save:'저축', fixed:'고정 지출', left:'남은 돈',
+           card:'카드', cash:'현금', tabAsset:'자산', tabStock:'주식', tabReport:'리포트'},
+  cats: {
+    income: ['급여','용돈','부수입','기타 수입'],
+    spend:  ['식비','교통비','관광','쇼핑','경조사비','기타'],
+    save:   ['주식','예금','적금','비상금'],
+  },
+  // 고정 지출 분류: spend = 지출로 집계, save = 저축으로 집계(출금 통장 → 입금 통장)
+  fixedCats: {
+    spend: ['구독료','보험료','통신비','월세·관리비','공과금','대출 상환','교육비','기타 고정'],
+    save:  ['적금','청약','연금','투자 적립'],
+  },
+  acctKinds: ['생활비','적금','예금','비상금','파킹','증권','기타'],
+};
+const LABEL_DESC = {app:'프로그램 이름 / 가계부 탭', income:'수입', spend:'지출', save:'저축', fixed:'고정 지출', left:'남은 돈',
+  card:'결제수단: 카드', cash:'결제수단: 현금', tabAsset:'자산 탭', tabStock:'주식 탭', tabReport:'리포트 탭'};
+const clone = o => JSON.parse(JSON.stringify(o));
+function loadConf(){
+  const c = parse(localStorage.getItem(KEY_CONF), {}) || {};
+  return {
+    labels: {...DEFAULT_CONF.labels, ...(c.labels || {})},
+    cats: {...clone(DEFAULT_CONF.cats), ...(c.cats || {})},
+    fixedCats: {...clone(DEFAULT_CONF.fixedCats), ...(c.fixedCats || {})},
+    acctKinds: c.acctKinds || [...DEFAULT_CONF.acctKinds],
+  };
+}
+let CONF = loadConf();
+function applyConf(){
+  L = CONF.labels; CATS = CONF.cats;
+  TYPE_NAME = {income:L.income, spend:L.spend, save:L.save, fixed:'고정'};
+  METHOD_NAME = {card:L.card, cash:L.cash};
+  document.querySelectorAll('[data-l]').forEach(el=> el.textContent = L[el.dataset.l] ?? el.textContent);
+  document.title = L.app;
+}
+applyConf();
+
+/* ---------- 계산 ---------- */
+const fixedIn = m => fixed.filter(f => f.start <= m && (!f.end || m <= f.end));
+const fixedType = f => f.type === 'save' ? 'save' : 'spend';
+function stats(m){
+  const its = items.filter(i => i.date.startsWith(m));
+  const fx = fixedIn(m), fxSpend = fx.filter(f=>fixedType(f)==='spend'), fxSave = fx.filter(f=>fixedType(f)==='save');
+  const sum = arr => arr.reduce((a,x)=>a+x.amount,0);
+  const spendVar = sum(its.filter(i=>i.type==='spend'));
+  const spendFixed = sum(fxSpend), saveFixed = sum(fxSave);
+  const spendRows = [...its.filter(i=>i.type==='spend'), ...fxSpend];
+  return {
+    its, fx, fxSpend, fxSave, saveFixed,
+    income: sum(its.filter(i=>i.type==='income')),
+    save: sum(its.filter(i=>i.type==='save')) + saveFixed,
+    spendVar, spendFixed, spend: spendVar + spendFixed,
+    card: sum(spendRows.filter(r=>r.method==='card')),
+    cash: sum(spendRows.filter(r=>r.method==='cash')),
+    etc: sum(spendRows.filter(r=>!r.method)),
+  };
+}
+
+/* ---------- 렌더 ---------- */
+function render(){
+  $('mlabel').textContent = mName(month);
+  const s = stats(month), p = stats(addMonths(month,-1));
+
+  $('tIncome').textContent = won(s.income);
+  $('tIncomeS').textContent = `${s.its.filter(i=>i.type==='income').length}건`;
+  $('tSpend').textContent = won(s.spend);
+  $('tSpendS').textContent = `변동 ${won(s.spendVar)} · 고정 ${won(s.spendFixed)}`;
+  $('tSave').textContent = won(s.save);
+  $('tSaveS').textContent = [s.income ? `${L.income}의 ${Math.round(s.save/s.income*100)}%` : '', s.saveFixed ? `고정 ${won(s.saveFixed)} 포함` : ''].filter(Boolean).join(' · ');
+  const left = s.income - s.spend - s.save;
+  $('tLeft').textContent = won(left);
+  $('tLeft').className = 'v num' + (left < 0 ? ' up' : '');
+
+  // 지난달 대비
+  const diff = s.spend - p.spend;
+  if (p.spend === 0) {
+    $('compare').innerHTML = `<span class="muted">지난달 기록이 없어요</span>`;
+  } else if (diff === 0) {
+    $('compare').innerHTML = `지난달과 같아요`;
+  } else {
+    const cls = diff > 0 ? 'up' : 'down', word = diff > 0 ? '증가' : '감소', arrow = diff > 0 ? '▲' : '▼';
+    $('compare').innerHTML = `지난달보다 <b class="${cls}">${arrow} ${won(Math.abs(diff))}</b> <span class="${cls}">(${Math.abs(Math.round(diff/p.spend*100))}% ${word})</span>`;
+  }
+  $('compareSub').textContent = `${mName(addMonths(month,-1))} ${won(p.spend)} → ${mName(month)} ${won(s.spend)}`;
+
+  // 결제수단
+  const tot = s.card + s.cash + s.etc;
+  const seg = [['카드', s.card, 'var(--accent)'], ['현금', s.cash, 'var(--accent-2)']];
+  if (s.etc) seg.push(['미지정', s.etc, 'var(--muted)']);
+  $('split').innerHTML = tot ? seg.filter(x=>x[1]).map(([,v,c])=>`<div style="width:${v/tot*100}%;background:${c}"></div>`).join('') : '';
+  $('splitLegend').innerHTML = seg.map(([n,v,c])=>
+    `<span><span class="dot" style="background:${c}"></span>${n} <b style="color:var(--ink)">${won(v)}</b>${tot?` <span class="muted">(${Math.round(v/tot*100)}%)</span>`:''}</span>`).join('');
+
+  renderChart();
+  renderCats(s);
+  renderFixed(s);
+  renderList(s);
+  renderBudget(s);
+  updateTabs();
+}
+
+function renderChart(){
+  const months = [...Array(6)].map((_,i)=>addMonths(month, i-5));
+  const data = months.map(m => ({m, ...stats(m)}));
+  barChart($('chart'), data.map(d=>({
+    label: `${Number(d.m.slice(5))}월`, value: d.spend, sel: d.m===month,
+    tip: `<b>${mName(d.m)}</b><br>${L.spend} ${won(d.spend)}<br>변동 ${won(d.spendVar)} · 고정 ${won(d.spendFixed)}`,
+    onClick: ()=>{ month = d.m; render(); }
+  })));
+
+  // 표
+  $('monthTable').innerHTML = `<tr><th>월</th><th class="r">${L.income}</th><th class="r">${L.spend}</th><th class="r">전월 대비</th></tr>` +
+    data.slice().reverse().map((d,i,arr)=>{
+      const prev = stats(addMonths(d.m,-1)).spend, df = d.spend - prev;
+      const cmp = !prev ? '<span class="muted">–</span>' : df===0 ? '0%' :
+        `<span class="${df>0?'up':'down'}">${df>0?'▲':'▼'} ${Math.abs(Math.round(df/prev*100))}%</span>`;
+      return `<tr${d.m===month?' style="font-weight:600"':''}><td>${mName(d.m)}</td><td class="r">${won(d.income)}</td><td class="r">${won(d.spend)}</td><td class="r">${cmp}</td></tr>`;
+    }).join('');
+}
+
+function renderCats(s){
+  $('catLabel').textContent = mName(month);
+  const map = {};
+  s.its.filter(i=>i.type==='spend').forEach(i=> map[i.cat] = (map[i.cat]||0) + i.amount);
+  s.fxSpend.forEach(f=> map[f.cat] = (map[f.cat]||0) + f.amount);
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  if (!rows.length) { $('catBars').innerHTML = `<div class="empty">이 달의 ${L.spend} 기록이 없어요</div>`; return; }
+  const max = rows[0][1], tot = rows.reduce((a,r)=>a+r[1],0);
+  $('catBars').innerHTML = rows.map(([k,v])=>`
+    <div class="hbar" title="${esc(k)} ${won(v)}">
+      <span>${esc(k)}</span>
+      <div class="track"><div class="fill" style="width:${v/max*100}%"></div></div>
+      <span class="val num">${won(v)}<small>${Math.round(v/tot*100)}%</small></span>
+    </div>`).join('');
+}
+
+function renderFixed(s){
+  $('fixedTotal').textContent = `${mName(month)} ${L.spend} ${won(s.spendFixed)}` + (s.saveFixed ? ` · ${L.save} ${won(s.saveFixed)}` : '');
+  if (!fixed.length) $('fixedAdd').open = true;
+  if (!s.fx.length) { $('fixedTable').innerHTML = `<tr><td class="empty">이 달에 적용되는 ${L.fixed}이 없어요</td></tr>`; return; }
+  $('fixedTable').innerHTML = `<tr><th>이름</th><th>분류</th><th>결제일</th><th>결제수단 · 통장</th><th>기간</th><th class="r">월 금액</th><th></th></tr>` +
+    s.fx.slice().sort((a,b)=>a.day-b.day).map(f=>`
+      <tr><td>${esc(f.name)}</td><td><span class="tag ${fixedType(f)==='save' ? 'save' : 'spend'}">${esc(f.cat)}</span><span class="sub2">${TYPE_NAME[fixedType(f)]}</span></td><td>매월 ${f.day}일</td>
+      <td>${fixedType(f)==='save'
+        ? `${esc(acctName(f.acct)) || '–'} → ${esc(acctName(f.to)) || '–'}`
+        : `${METHOD_NAME[f.method] || ''}${f.acct && acctName(f.acct) ? ` <span class="sub2">${esc(acctName(f.acct))}</span>` : ''}`}</td><td class="muted">${mName(f.start)} ~ ${f.end?mName(f.end):''}</td>
+      <td class="r">${won(f.amount)}</td>
+      <td class="r" style="white-space:nowrap">
+        <button class="x" onclick="editFixed(${f.id})" title="수정">수정</button>
+        ${f.end ? '' : `<button class="x" onclick="endFixed(${f.id})" title="이번 달까지만 적용">해지</button>`}
+        <button class="x" onclick="delFixed(${f.id})" title="모든 달에서 삭제">삭제</button></td></tr>`).join('');
+}
+
+function renderList(s){
+  const f = $('lFilter').value;
+  const rows = [
+    ...s.its.map(i=>({...i, kind:i.type})),
+    ...s.fx.map(x=>({id:x.id, date:`${month}-${pad(Math.min(x.day, lastDay(month)))}`, kind:'fixed', ftype:fixedType(x), cat:x.cat, memo:x.name, method:fixedType(x)==='save' ? undefined : x.method, acct:x.acct, from:x.acct, to:x.to, amount:x.amount}))
+  ].filter(r => f==='all' || r.kind===f || (f==='spend' && r.kind==='fixed'))
+   .sort((a,b)=> b.date.localeCompare(a.date) || b.id - a.id);
+  if (!rows.length) { $('listTable').innerHTML = `<tr><td class="empty">${mName(month)} 내역이 없어요</td></tr>`; return; }
+  $('listTable').innerHTML = LIST_HEAD + rows.map(listRow).join('');
+}
+const LIST_HEAD = `<tr><th>날짜</th><th>구분</th><th>항목</th><th>메모</th><th>결제수단</th><th>통장</th><th class="r">금액</th><th></th></tr>`;
+function listRow(r){
+  const isSave = r.kind==='save' || r.ftype==='save';
+  const sign = r.kind==='income' ? '+' : isSave ? '' : '−';
+  const color = r.kind==='income' ? 'color:var(--income)' : isSave ? 'color:var(--savec)' : '';
+  const acct = isSave
+    ? ((r.from || r.to) ? `${esc(acctName(r.from)) || '–'} → ${esc(acctName(r.to)) || '–'}` : '')
+    : esc(acctName(r.acct));
+  const actions = r.kind==='fixed'
+    ? `<button class="x" onclick="editFixed(${r.id})" title="고정 항목 수정">수정</button>`
+    : `<button class="x" onclick="editItem(${r.id})" title="수정">✎</button><button class="x" onclick="delItem(${r.id})" title="삭제">✕</button>`;
+  return `<tr><td>${r.date}</td><td><span class="tag ${r.kind}">${r.kind==='fixed' ? `고정·${TYPE_NAME[r.ftype]}` : TYPE_NAME[r.kind]}</span></td>
+    <td>${esc(r.cat)}</td><td class="muted">${esc(r.memo)}</td>
+    <td>${r.method ? METHOD_NAME[r.method] : '<span class="muted">–</span>'}</td>
+    <td>${acct || '<span class="muted">–</span>'}</td>
+    <td class="r" style="${color}">${sign}${won(r.amount)}</td>
+    <td class="r" style="white-space:nowrap">${actions}</td></tr>`;
+}
+
+/* ---------- 동작 ---------- */
+function fillCats(){
+  const t = $('eType').value;
+  $('eCat').innerHTML = CATS[t].map(c=>`<option>${esc(c)}</option>`).join('');
+  $('eMethodWrap').classList.toggle('hide', t !== 'spend');
+  document.querySelectorAll('#eTypeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.t === t));
+  preselectAcct();
+}
+document.querySelectorAll('#eTypeSeg button').forEach(b=> b.addEventListener('click', ()=>{
+  $('eType').value = b.dataset.t; fillCats(); $('eAmount').focus();
+}));
+$('eType').addEventListener('change', fillCats);
+$('eCat').addEventListener('change', preselectAcct);
+
+// 고정 지출 분류: 지출형 / 저축형(적금 등 → 출금 통장에서 입금 통장으로)
+const fixedCatType = c => CONF.fixedCats.save.includes(c) ? 'save' : 'spend';
+function fillFixedCats(){
+  const opts = arr => arr.map(c=>`<option>${esc(c)}</option>`).join('');
+  $('fCat').innerHTML = `<optgroup label="${esc(L.spend)}">${opts(CONF.fixedCats.spend)}</optgroup>`
+                      + `<optgroup label="${esc(L.save)} (통장 이체)">${opts(CONF.fixedCats.save)}</optgroup>`;
+  updateFixedForm();
+}
+function updateFixedForm(){
+  const save = fixedCatType($('fCat').value) === 'save';
+  $('fMethodWrap').classList.toggle('hide', save);
+  $('fToWrap').classList.toggle('hide', !save || !accounts.length);
+  if (save) {
+    const cat = $('fCat').value;
+    $('fTo').value = (accounts.find(a=>a.kind===cat) || accounts.find(a=>['적금','예금','증권'].includes(a.kind)) || {}).id || '';
+    if (!$('fName').value) $('fName').placeholder = `예) ${cat}`;
+  } else $('fName').placeholder = '예) 넷플릭스';
+}
+$('fCat').addEventListener('change', updateFixedForm);
+
+document.querySelectorAll('.money').forEach(el=> el.addEventListener('input', e=>{
+  const n = toNum(e.target.value); e.target.value = n ? n.toLocaleString('ko-KR') : '';
+}));
+
+$('entryForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const amount = toNum($('eAmount').value);
+  if (!amount) { $('eAmount').focus(); return; }
+  const type = $('eType').value, acct = Number($('eAcct').value) || null, date = $('eDate').value, cat = $('eCat').value;
+  const rec = { date, type, cat, method: type==='spend' ? $('eMethod').value : undefined, amount, memo: $('eMemo').value.trim(),
+    ...(type==='save' ? {from: acct, to: Number($('eTo').value) || null} : {acct}) };
+  const bm = date.slice(0,7), before = budgetSnapshot(bm, cat);
+  if (editItemId) {
+    const i = items.find(x=>x.id===editItemId);
+    if (i) { ['acct','from','to','method'].forEach(k=> delete i[k]); Object.assign(i, rec); }
+    setEntryMode(false); toast('기록을 수정했어요');
+  } else items.push({ id: Date.now(), ...rec });
+  store(KEY_ITEMS, items);
+  $('eAmount').value = ''; $('eMemo').value = '';
+  month = bm;
+  render(); renderReport();
+  if (type === 'spend') budgetAlert(bm, cat, before);
+});
+
+$('fixedForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const amount = toNum($('fAmount').value);
+  if (!amount) { $('fAmount').focus(); return; }
+  const type = fixedCatType($('fCat').value);
+  const rec = { name: $('fName').value.trim(), cat: $('fCat').value, type, amount,
+    day: Math.min(31, Math.max(1, Number($('fDay').value)||1)), method: type==='save' ? undefined : $('fMethod').value,
+    acct: Number($('fAcct').value) || null, to: type==='save' ? (Number($('fTo').value) || null) : undefined, start: $('fStart').value };
+  if (editFixedId) {
+    const f = fixed.find(x=>x.id===editFixedId);
+    if (f) Object.assign(f, rec);
+    setFixedMode(false); toast(`${L.fixed}을 수정했어요`);
+  } else fixed.push({ id: Date.now(), ...rec, end: null });
+  store(KEY_FIXED, fixed);
+  $('fName').value = ''; $('fAmount').value = '';
+  render(); renderReport();
+});
+
+function delItem(id){
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  items = items.filter(i=>i.id!==id); store(KEY_ITEMS, items); render(); renderReport();
+  if (editItemId === id) setEntryMode(false);
+}
+function endFixed(id){
+  if (!confirm(`${mName(month)}까지만 적용하고 다음 달부터 제외할까요?`)) return;
+  const f = fixed.find(x=>x.id===id); f.end = month; store(KEY_FIXED, fixed); render();
+}
+function delFixed(id){
+  if (!confirm(`이 ${L.fixed}을 지난 달 통계까지 포함해 완전히 삭제할까요?\n(지난 기록을 남기려면 "해지"를 사용하세요)`)) return;
+  fixed = fixed.filter(x=>x.id!==id); store(KEY_FIXED, fixed); render();
+}
+
+$('prev').onclick = ()=>{ month = addMonths(month,-1); $('fStart').value = month; render(); };
+$('next').onclick = ()=>{ month = addMonths(month, 1); $('fStart').value = month; render(); };
+$('lFilter').addEventListener('change', ()=>renderList(stats(month)));
+
+$('csv').addEventListener('click', ()=>{
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const rows = [['날짜','구분','항목','결제수단','금액','메모']]
+    .concat([...items].sort((a,b)=>a.date.localeCompare(b.date))
+      .map(i=>[i.date, TYPE_NAME[i.type], i.cat, METHOD_NAME[i.method]||'', i.amount, i.memo]))
+    .concat([[], [L.fixed], ['이름','분류','결제일','결제수단','월 금액','기간']])
+    .concat(fixed.map(f=>[f.name, f.cat, f.day+'일', METHOD_NAME[f.method], f.amount, `${f.start}~${f.end||''}`]));
+  const blob = new Blob(['﻿' + rows.map(r=>r.map(q).join(',')).join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '가계부.csv'; a.click();
+});
+
+/* ---------- 공용 차트 ---------- */
+const shortWon = v => Math.abs(v) >= 10000
+  ? `${(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})}만` : Math.round(v).toLocaleString('ko-KR');
+const barPath = (x,y0,w,h)=>{ const r=Math.min(4,h,w/2); return `M${x},${y0+h}V${y0+r}Q${x},${y0} ${x+r},${y0}H${x+w-r}Q${x+w},${y0} ${x+w},${y0+r}V${y0+h}Z`; };
+function niceScale(max){
+  if (!max) return {top:100000, step:25000};
+  const raw = max/4, p10 = 10**Math.floor(Math.log10(raw));
+  const step = [1,2,2.5,5,10].map(k=>k*p10).find(x=>x>=raw);
+  return {top:step*4, step};
+}
+// 차트는 화면에 보이는 실제 너비로 그림 → 넓은 카드에서도 글자 크기가 그대로
+const chartWidth = box => Math.max(300, Math.round(box.clientWidth) || 440);
+// data: [{label, value, tip, sel, onClick}]
+function barChart(box, data){
+  const {top, step} = niceScale(Math.max(0, ...data.map(d=>d.value)));
+  const W = chartWidth(box), H=210, L=52, R=8, T=22, B=26, pw=W-L-R, ph=H-T-B, slot=pw/data.length, bw=Math.min(44, slot*.5);
+  const y = v => T + ph - v/top*ph;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (let i=0;i<=4;i++){
+    const yy = y(step*i);
+    svg += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/>
+      <text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${shortWon(step*i)}</text>`;
+  }
+  data.forEach((d,i)=>{
+    const cx = L + slot*i + slot/2, h = d.value/top*ph;
+    if (h>0) svg += `<path d="${barPath(cx-bw/2, y(d.value), bw, h)}" fill="${d.sel?'var(--accent)':'var(--accent-2)'}"/>`;
+    if (d.sel && d.value) svg += `<text x="${cx}" y="${y(d.value)-7}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">${shortWon(d.value)}</text>`;
+    svg += `<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="12" fill="${d.sel?'var(--ink)':'var(--muted)'}" font-weight="${d.sel?600:400}">${slot < 34 ? d.label.replace('월', '') : d.label}</text>
+      <rect class="hit" data-i="${i}" x="${L+slot*i}" y="${T}" width="${slot}" height="${ph}" fill="transparent"/>`;
+  });
+  box.innerHTML = svg + `</svg><div class="tip"></div>`;
+  const tip = box.querySelector('.tip'), svgEl = box.querySelector('svg');
+  box.querySelectorAll('.hit').forEach(r=>{
+    const i = +r.dataset.i, d = data[i];
+    r.addEventListener('mouseenter', ()=>{
+      const sc = svgEl.clientWidth / W;
+      tip.innerHTML = d.tip;
+      tip.style.left = (L + slot*i + slot/2)*sc + 'px';
+      tip.style.top = (y(d.value) - 10)*sc + 'px';
+      tip.style.opacity = 1;
+    });
+    r.addEventListener('mouseleave', ()=> tip.style.opacity = 0);
+    if (d.onClick) { r.style.cursor = 'pointer'; r.addEventListener('click', d.onClick); }
+  });
+}
+// pts: [{label, value, tip}]
+function lineChart(box, pts, emptyMsg){
+  if (pts.length < 2) { box.innerHTML = `<div class="empty">${emptyMsg}</div>`; return; }
+  const W = chartWidth(box), H=210, L=60, R=14, T=16, B=26, pw=W-L-R, ph=H-T-B, n=pts.length;
+  let lo = Math.min(...pts.map(p=>p.value)), hi = Math.max(...pts.map(p=>p.value));
+  const padv = (hi-lo)*.2 || Math.abs(hi)*.05 || 1; lo -= padv; hi += padv;
+  const x = i => L + i/(n-1)*pw, y = v => T + ph - (v-lo)/(hi-lo)*ph;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (let k=0;k<=3;k++){
+    const v = lo + (hi-lo)*k/3, yy = y(v);
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/>
+      <text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)">${shortWon(v)}</text>`;
+  }
+  [...new Set([0, Math.floor((n-1)/2), n-1])].forEach(i=>{
+    s += `<text x="${x(i)}" y="${H-8}" text-anchor="${i===0?'start':i===n-1?'end':'middle'}" font-size="12" fill="var(--muted)">${pts[i].label}</text>`;
+  });
+  s += `<path d="${pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p.value).toFixed(1)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(n-1)}" cy="${y(pts[n-1].value)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <line class="cross" y1="${T}" y2="${T+ph}" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0"/>
+    <circle class="hdot" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <rect class="ov" x="${L}" y="${T}" width="${pw}" height="${ph}" fill="transparent"/></svg><div class="tip"></div>`;
+  box.innerHTML = s;
+  const svg = box.querySelector('svg'), tip = box.querySelector('.tip'),
+        cross = box.querySelector('.cross'), hdot = box.querySelector('.hdot'), ov = box.querySelector('.ov');
+  ov.addEventListener('mousemove', e=>{
+    const rc = svg.getBoundingClientRect(), sc = rc.width / W;
+    const i = Math.max(0, Math.min(n-1, Math.round(((e.clientX-rc.left)/sc - L)/pw*(n-1)))), p = pts[i];
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1);
+    hdot.setAttribute('cx', x(i)); hdot.setAttribute('cy', y(p.value)); hdot.setAttribute('opacity', 1);
+    tip.innerHTML = p.tip; tip.style.left = x(i)*sc + 'px'; tip.style.top = (y(p.value)-10)*sc + 'px'; tip.style.opacity = 1;
+  });
+  ov.addEventListener('mouseleave', ()=>{ cross.setAttribute('opacity',0); hdot.setAttribute('opacity',0); tip.style.opacity = 0; });
+}
+
+/* ================= 주식 현황 ================= */
+const KEY_HOLD='ledger-stocks-v1', KEY_SNAP='ledger-stock-snap-v1', KEY_CFG='ledger-stock-cfg-v1', KEY_VIEW='ledger-view';
+const loadObj = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch(e) { return {}; } };
+let holdings = load(KEY_HOLD);     // [{sym, name, qty, avg}]  avg = 평균 매수가(USD)
+let snaps = loadObj(KEY_SNAP);     // {'YYYY-MM-DD': {value, cost}}  (원화)
+let cfg = loadObj(KEY_CFG);        // {key, fxManual, fxLast}
+const DEFAULT_KEY = '';
+const validKey = k => /^[A-Za-z0-9]{10,}$/.test(k || '');   // 가려진 키(•••)나 공백 섞인 값 걸러냄
+if (!validKey(cfg.key)) { cfg.key = DEFAULT_KEY; store(KEY_CFG, cfg); }
+let quotes = {};                   // sym -> Finnhub quote {c, d, dp, pc}
+const KEY_REAL = 'ledger-realized-v1';
+let realized = load(KEY_REAL);     // 매도 기록 [{id, date, sym, name, mkt, qty, price, avg, fx, pl, proceeds, acct}] (pl·proceeds는 원화)
+const realTotal = () => realized.reduce((a,r)=>a + r.pl, 0);
+let fxAuto = null, lastUpdate = null, stockErr = '', busy = false;
+let view = (()=>{ try { return localStorage.getItem(KEY_VIEW) || 'ledger'; } catch(e) { return 'ledger'; } })();
+
+const usd = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+const signed = v => (v>0?'+':v<0?'−':'') + won(Math.abs(v));
+const pct = v => (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(2) + '%';
+const tone = v => v>0 ? 'up' : v<0 ? 'down' : '';
+const arrow = v => v>0 ? '▲ ' : v<0 ? '▼ ' : '';
+const localDay = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const fxRate = () => Number(cfg.fxManual) || fxAuto || Number(cfg.fxLast) || 0;
+
+async function fetchFx(){
+  const srcs = [['https://open.er-api.com/v6/latest/USD', j=>j.rates.KRW],
+                ['https://api.frankfurter.dev/v1/latest?base=USD&symbols=KRW', j=>j.rates.KRW]];
+  for (const [u, pick] of srcs){
+    try {
+      const r = await fetch(u); if (!r.ok) continue;
+      const v = pick(await r.json());
+      if (v) { fxAuto = v; cfg.fxLast = v; store(KEY_CFG, cfg); $('cFx').placeholder = `비우면 자동 (${v.toLocaleString('ko-KR',{maximumFractionDigits:2})})`; return; }
+    } catch(e) {}
+  }
+}
+async function finnhub(path){
+  const r = await fetch(`https://finnhub.io/api/v1/${path}&token=${encodeURIComponent(cfg.key)}`);
+  if (r.status===401 || r.status===403) throw new Error('auth');
+  if (r.status===429) throw new Error('limit');
+  if (!r.ok) throw new Error('http');
+  return r.json();
+}
+/* 국내 주식: 가계부 실행.bat(server.py)로 열었을 때만 server.py가 네이버 시세를 대신 받아줌 */
+const isKR = h => h.mkt === 'KR';
+const qk = h => (isKR(h) ? 'KR:' : '') + h.sym;          // quotes 키
+let proxy = false;
+async function checkProxy(){
+  if (APP_MODE) return proxy = false;
+  if (!location.protocol.startsWith('http')) return proxy = false;
+  try { const r = await fetch('/api/ping'); proxy = r.ok && (await r.json()).ok === true; } catch(e) { proxy = false; }
+  return proxy;
+}
+async function krApi(path){
+  const r = await fetch('/api/kr/' + path);
+  if (!r.ok) throw new Error('kr');
+  return r.json();
+}
+async function refreshQuotes(){
+  if (busy || !holdings.length) { stockErr = ''; renderStock(); return; }
+  busy = true;
+  const errs = [], us = holdings.filter(h=>!isKR(h)), kr = holdings.filter(isKR);
+  if (us.length && !cfg.key) errs.push('미국 주식 시세: 설정 탭에서 Finnhub API 키를 입력해 주세요.');
+  else if (us.length) {
+    try {
+      await Promise.all(us.map(async h=>{
+        const q = await finnhub(`quote?symbol=${encodeURIComponent(h.sym)}`);
+        quotes[qk(h)] = q && q.c ? q : {err:true};
+      }));
+    } catch(e) {
+      errs.push(e.message==='auth' ? '미국 주식: API 키가 올바르지 않아요.'
+              : e.message==='limit' ? '미국 주식: 요청 한도를 넘었어요. 잠시 후 다시 시도해요.'
+              : '미국 주식 시세를 불러오지 못했어요.');
+    }
+  }
+  if (kr.length && proxy) {
+    try {
+      const d = await krApi('quote?codes=' + kr.map(h=>encodeURIComponent(h.sym)).join(','));
+      kr.forEach(h=>{ const q = d[h.sym]; quotes[qk(h)] = q && q.c ? q : {err:true}; });
+    } catch(e) { errs.push('국내 주식 시세를 불러오지 못했어요.'); }
+  }
+  stockErr = errs.join(' ');
+  lastUpdate = new Date();
+  busy = false;
+  recordSnap();
+  renderStock();
+}
+// 현재가: 실시간 시세 → (국내) 직접 입력한 현재가 → 없으면 null
+function priceOf(h){
+  const q = quotes[qk(h)];
+  if (q && !q.err) return {c:q.c, d:q.d, dp:q.dp, live:true};
+  if (isKR(h) && h.manual) return {c:h.manual, d:0, dp:0, live:false};
+  return null;
+}
+// 모두 원화로 합산. 현재가가 없는 종목은 평균 매수가로 계산 (손익 0)
+function totals(){
+  const r = fxRate(), hasUS = holdings.some(h=>!isKR(h));
+  let v=0, c=0, d=0, usdV=0, ok = holdings.length > 0 && (r > 0 || !hasUS);
+  holdings.forEach(h=>{
+    const m = isKR(h) ? 1 : r, p = priceOf(h), px = p ? p.c : h.avg;
+    c += h.qty*h.avg*m; v += h.qty*px*m; d += p ? h.qty*p.d*m : 0;
+    if (!isKR(h)) usdV += h.qty*px;
+    if (!p) ok = false;
+  });
+  return {value:v, cost:c, day:d, usdV, rate:r, hasUS, ready: r > 0 || !hasUS, ok};
+}
+function recordSnap(){
+  const t = totals(); if (!t.ok) return;
+  const v = {value:Math.round(t.value), cost:Math.round(t.cost), real:Math.round(realTotal())}, d = localDay();
+  if (JSON.stringify(snaps[d]) === JSON.stringify(v)) return;   // 바뀐 게 없으면 저장 안 함
+  snaps[d] = v; store(KEY_SNAP, snaps);
+}
+// 변동 = 손익(평가금액 − 매수금액 + 누적 실현 손익)의 변화
+//   → 추가 매수로 늘어난 금액은 변동에서 제외, 매도로 줄어든 평가금액도 실현 손익으로 상쇄
+const gain = s => s.value - s.cost + (s.real || 0);
+function dailyRows(){
+  const ds = Object.keys(snaps).sort();
+  return ds.map((d,i)=>{
+    const s = snaps[d], p = i ? snaps[ds[i-1]] : null;
+    const chg = p ? gain(s) - gain(p) : null;
+    return {date:d, ...s, chg, rate: p && p.value ? chg/p.value*100 : null};
+  });
+}
+function monthlyRows(){
+  const by = {};
+  Object.keys(snaps).sort().forEach(d=>{ const m=d.slice(0,7); (by[m] = by[m] || []).push(snaps[d]); });
+  const ms = Object.keys(by).sort();
+  return ms.map((m,i)=>{
+    const end = by[m][by[m].length-1], base = i ? by[ms[i-1]][by[ms[i-1]].length-1] : by[m][0];
+    const chg = gain(end) - gain(base);
+    return {m, ...end, chg, rate: base.value ? chg/base.value*100 : 0, ret: end.cost ? (end.value-end.cost)/end.cost*100 : 0};
+  });
+}
+
+function renderStock(){
+  const t = totals();
+  updateTabs();
+  if (view === 'asset') renderAsset();
+  if (view !== 'stock') return;
+  const base = t.value - t.day, pl = t.value - t.cost, nKR = holdings.filter(isKR).length, nUS = holdings.length - nKR;
+
+  $('sValue').textContent = won(t.value);
+  $('sValueS').textContent = [nKR ? `국내 ${nKR}종목` : '',
+    nUS ? `미국 ${usd(t.usdV)} · 환율 ${t.rate ? t.rate.toLocaleString('ko-KR',{maximumFractionDigits:2})+'원' : '–'}` : ''].filter(Boolean).join(' · ');
+  $('sDay').textContent = signed(t.day); $('sDay').className = 'v num ' + tone(t.day);
+  $('sDayS').textContent = base && t.day ? `${pct(t.day/base*100)} · 전일 종가 대비` : '';
+  $('sPL').textContent = signed(pl); $('sPL').className = 'v num ' + tone(pl);
+  $('sPLS').textContent = [t.cost ? `수익률 ${pct(pl/t.cost*100)}` : '', realized.length ? `실현 ${signed(realTotal())}` : ''].filter(Boolean).join(' · ');
+  $('sCost').textContent = won(t.cost);
+  $('sCostS').textContent = `${holdings.length}개 종목`;
+  const krNote = nKR && !proxy ? `<span class="up">국내 주식은 현재가를 직접 입력해요</span> · ` : '';
+  $('sStatus').innerHTML = krNote + (stockErr ? `<span class="up">${stockErr}</span>`
+    : lastUpdate ? `${lastUpdate.toLocaleTimeString('ko-KR')} 갱신 · 1분마다 자동 갱신` : (holdings.length ? '시세 불러오는 중…' : ''));
+
+  // 보유 종목
+  const money = (h, v) => isKR(h) ? won(v) : usd(v);
+  $('holdTable').innerHTML = !holdings.length
+    ? `<tr><td class="empty">보유 종목을 추가해 보세요 (예: 미국 AAPL · 국내 KODEX 미국나스닥100)</td></tr>`
+    : `<tr><th>종목</th><th class="r">수량</th><th class="r">평균 매수가</th><th class="r">현재가</th><th class="r">평가금액</th><th class="r">손익</th><th></th></tr>` +
+      holdings.map(h=>{
+        const p = priceOf(h), m = isKR(h) ? 1 : t.rate, px = p ? p.c : h.avg;
+        const val = h.qty*px*m, cost = h.qty*h.avg*m, gl = val - cost, q = quotes[qk(h)];
+        const priceCell = p && p.live ? `${money(h, p.c)}<span class="sub2 ${tone(p.dp)}">${arrow(p.dp)}${pct(p.dp)}</span>`
+          : p ? `${won(p.c)}<span class="sub2">직접 입력</span>`
+          : `<span class="muted">${q && q.err ? '시세 없음' : '–'}</span>`;
+        const manualBtn = isKR(h) && !(p && p.live) ? `<button class="x" onclick="setManual('${qk(h)}')" title="현재가 직접 입력">현재가</button>` : '';
+        return `<tr>
+          <td><b>${esc(isKR(h) ? (h.name || h.sym) : h.sym)}</b><span class="sub2">${isKR(h) ? `국내 · ${esc(h.sym)}` : esc(h.name)}</span></td>
+          <td class="r">${h.qty.toLocaleString('en-US',{maximumFractionDigits:4})}${h.trades && h.trades.length > 1
+            ? `<button class="x sub2" style="display:block;margin-left:auto;padding:0" onclick="showTrades('${qk(h)}')">거래 ${h.trades.length}회</button>` : ''}</td>
+          <td class="r">${money(h, h.avg)}</td>
+          <td class="r">${priceCell}</td>
+          <td class="r">${won(val)}${isKR(h) ? '' : `<span class="sub2">${usd(h.qty*px)}</span>`}</td>
+          <td class="r ${p ? tone(gl) : ''}">${p ? signed(gl) : '–'}<span class="sub2 ${p ? tone(gl) : ''}">${p && cost ? pct(gl/cost*100) : ''}</span></td>
+          <td class="r" style="white-space:nowrap">${manualBtn}<button class="x" onclick="sellHolding('${qk(h)}')" title="매도 기록">매도</button><button class="x" onclick="setStockMode('edit','${qk(h)}')" title="수량·평균 매수가 수정">수정</button><button class="x" onclick="delHolding('${qk(h)}')" title="삭제">✕</button></td></tr>`;
+      }).join('');
+
+  // 일별
+  const dr = dailyRows();
+  lineChart($('dChart'), dr.slice(-30).map(r=>({
+    label: r.date.slice(5).replace('-','/'), value: r.value,
+    tip: `<b>${r.date}</b><br>평가금액 ${won(r.value)}<br>시세 변동 ${r.chg==null ? '–' : signed(r.chg)}`
+  })), '2일 이상 기록이 쌓이면 그래프가 보여요');
+  $('dTable').innerHTML = !dr.length ? '' :
+    `<tr><th>날짜</th><th class="r">평가금액</th><th class="r">시세 변동</th></tr>` +
+    dr.slice(-7).reverse().map(r=>`<tr><td>${r.date}</td><td class="r">${won(r.value)}</td>
+      <td class="r ${tone(r.chg)}">${r.chg==null ? '<span class="muted">–</span>' : `${arrow(r.chg)}${won(Math.abs(r.chg))} <small>(${pct(r.rate)})</small>`}</td></tr>`).join('');
+
+  // 월별
+  const mr = monthlyRows();
+  if (!mr.length) $('mChart').innerHTML = `<div class="empty">기록이 쌓이면 월별 변동이 보여요</div>`;
+  else barChart($('mChart'), mr.slice(-6).map((r,i,a)=>({
+    label: `${Number(r.m.slice(5))}월`, value: r.value, sel: i===a.length-1,
+    tip: `<b>${mName(r.m)}</b><br>월말 평가금액 ${won(r.value)}<br>월간 변동 ${signed(r.chg)} (${pct(r.rate)})`
+  })));
+  $('mTable').innerHTML = !mr.length ? '' :
+    `<tr><th>월</th><th class="r">월말 평가금액</th><th class="r">월간 변동</th><th class="r">누적 수익률</th></tr>` +
+    mr.slice().reverse().map(r=>`<tr><td>${mName(r.m)}</td><td class="r">${won(r.value)}</td>
+      <td class="r ${tone(r.chg)}">${arrow(r.chg)}${won(Math.abs(r.chg))} <small>(${pct(r.rate)})</small></td>
+      <td class="r ${tone(r.ret)}">${pct(r.ret)}</td></tr>`).join('');
+
+  renderRealized();
+}
+
+// 시장 선택에 따라 입력 안내 변경
+function updateStockForm(){
+  const kr = $('hMkt').value === 'KR';
+  $('hSymLb').textContent = kr ? '종목명 또는 종목코드' : '티커 (영문)';
+  $('hSym').placeholder = kr ? '예) KODEX 미국나스닥' : '예) AAPL';
+  $('hSym').style.textTransform = kr ? 'none' : 'uppercase';
+  $('hAvgLb').textContent = kr ? '매수 단가 (원)' : '매수 단가 ($)';
+  $('hSym').value = ''; $('krList').innerHTML = '';
+}
+$('hMkt').addEventListener('change', updateStockForm);
+// 국내: 입력하는 동안 종목 검색 (server.py 필요)
+let searchTimer = null;
+$('hSym').addEventListener('input', ()=>{
+  if ($('hMkt').value !== 'KR' || !proxy) return;
+  clearTimeout(searchTimer);
+  const q = $('hSym').value.trim();
+  if (q.length < 2 || /\([0-9A-Z]{6}\)$/.test(q)) return;
+  searchTimer = setTimeout(async ()=>{
+    try {
+      const list = await krApi('search?q=' + encodeURIComponent(q));
+      $('krList').innerHTML = list.map(it=>`<option value="${esc(it.name)} (${esc(it.code)})"></option>`).join('');
+    } catch(e) {}
+  }, 250);
+});
+// 국내 종목 입력값 → {code, name}
+async function resolveKR(text){
+  const m = text.match(/^(.*?)\s*\(([0-9A-Z]{6})\)$/);
+  if (m) return {code: m[2], name: m[1]};
+  if (/^[0-9A-Z]{6}$/i.test(text)) return {code: text.toUpperCase(), name: ''};
+  if (!proxy) { alert('앱에서는 종목 이름 검색이 안 돼요.\n6자리 종목코드로 입력해 주세요. (예: 379810)'); return null; }
+  const list = await krApi('search?q=' + encodeURIComponent(text)).catch(()=>[]);
+  if (!list.length) { alert(`‘${text}’에 해당하는 국내 종목을 찾지 못했어요. 이름을 조금 다르게 입력해 보세요.`); return null; }
+  if (!confirm(`${list[0].name} (${list[0].code}) 종목으로 추가할까요?`)) return null;
+  return {code: list[0].code, name: list[0].name};
+}
+
+$('stockForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  if (stockMode === 'sell') return doSell();
+  if (stockMode === 'edit') return doEditHolding();
+  const mkt = $('hMkt').value, raw = $('hSym').value.trim();
+  const qty = parseFloat($('hQty').value), avg = parseFloat(String($('hAvg').value).replace(/,/g,''));
+  if (!raw) { alert(mkt === 'KR' ? '종목명이나 종목코드를 입력해 주세요.' : '미국 주식 티커를 영문으로 입력해 주세요. (예: AAPL, TSLA, VOO)'); $('hSym').focus(); return; }
+  if (!(qty>0)) { alert('보유 수량을 0보다 큰 숫자로 입력해 주세요.'); $('hQty').focus(); return; }
+  if (!(avg>0)) { alert(`평균 매수가를 ${mkt === 'KR' ? '원' : '달러($)'} 기준 숫자로 입력해 주세요.`); $('hAvg').focus(); return; }
+
+  let sym, name = '';
+  if (mkt === 'KR') {
+    const r = await resolveKR(raw); if (!r) return;
+    sym = r.code; name = r.name;
+    if (proxy) {
+      try { const d = await krApi('quote?codes=' + sym); if (d[sym]) { quotes['KR:'+sym] = d[sym]; name = name || d[sym].name; } } catch(err) {}
+      if (!quotes['KR:'+sym] && !confirm(`${sym} 시세를 찾을 수 없어요. 그래도 추가할까요?`)) return;
+    }
+  } else {
+    sym = raw.toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+    if (!sym) { alert('미국 주식 티커는 영문으로 입력해 주세요. 국내 종목이면 시장을 ‘국내’로 바꿔 주세요.'); return; }
+    try {
+      const q = await finnhub(`quote?symbol=${encodeURIComponent(sym)}`);
+      if (!q.c && !confirm(`${sym} 시세를 찾을 수 없어요. 티커가 맞나요? 그래도 추가할까요?`)) return;
+      if (q.c) quotes[sym] = q;
+      name = (await finnhub(`stock/profile2?symbol=${encodeURIComponent(sym)}`)).name || '';
+    } catch(err) {
+      if (err.message === 'auth') { alert('API 키가 올바르지 않아요. 아래 시세 설정의 API 키 칸을 비우고 저장하면 기본 키로 돌아가요.'); return; }
+    }
+  }
+
+  // 이미 보유한 종목이면 자동으로 추가 매수 처리: 수량 합산 + 평균 매수가 재계산 (가중평균)
+  const ex = holdings.find(h=>h.sym===sym && (h.mkt||'US')===mkt);
+  const trade = {date: localDay(), qty, price: avg};
+  if (ex) {
+    if (!ex.trades) ex.trades = [{date:'', qty:ex.qty, price:ex.avg}];   // 예전 보유분
+    const oq = ex.qty, oa = ex.avg, nq = oq + qty;
+    ex.avg = (oq*oa + qty*avg) / nq; ex.qty = nq; ex.trades.push(trade);
+    if (name) ex.name = name;
+    const f = v => mkt === 'KR' ? won(v) : usd(v);
+    toast(`${ex.name || sym} 추가 매수 반영 · 수량 ${+oq.toFixed(4)} → ${+nq.toFixed(4)}주 · 평균 매수가 ${f(oa)} → ${f(ex.avg)}`);
+  } else {
+    holdings.push({sym, name, qty, avg, mkt, trades:[trade]});
+    toast(`${name || sym} 추가됨`);
+  }
+  store(KEY_HOLD, holdings);
+  $('hSym').value = ''; $('hQty').value = ''; $('hAvg').value = ''; $('krList').innerHTML = '';
+  recordSnap(); renderStock();
+  const h = holdings.find(x=>x.sym===sym && (x.mkt||'US')===mkt);
+  if (isKR(h) && !proxy && !h.manual) setManual(qk(h)); else refreshQuotes();
+});
+function delHolding(key){
+  const h = holdings.find(x=>qk(x)===key); if (!h) return;
+  if (!confirm(`${h.name || h.sym} 종목을 삭제할까요?`)) return;
+  holdings = holdings.filter(x=>x!==h); delete quotes[key];
+  store(KEY_HOLD, holdings); recordSnap(); renderStock();
+}
+function showTrades(key){
+  const h = holdings.find(x=>qk(x)===key); if (!h || !h.trades) return;
+  const f = v => isKR(h) ? won(v) : usd(v);
+  alert(`${h.name || h.sym} 거래 기록\n\n` + h.trades.map(t=> t.edit
+      ? `${t.date}  [직접 수정] 보유 ${+t.qty.toFixed(4)}주 · 평균 ${f(t.price)}`
+      : `${t.date || '처음 등록'}  ${t.sell ? '[매도] ' : ''}${+Math.abs(t.qty).toFixed(4)}주 × ${f(t.price)}`).join('\n')
+    + `\n\n합계 ${+h.qty.toFixed(4)}주 · 평균 매수가 ${f(h.avg)}`);
+}
+// 국내 종목 현재가 직접 입력 (실시간 시세를 못 받을 때)
+function setManual(key){
+  const h = holdings.find(x=>qk(x)===key); if (!h) return;
+  const v = prompt(`${h.name || h.sym}의 현재가(원)를 입력해 주세요.\n(앱에서는 국내 시세를 자동으로 받을 수 없어요)`, h.manual ? h.manual.toLocaleString('ko-KR') : '');
+  if (v === null) return;
+  const n = toNum(v); if (!n) return;
+  h.manual = n; store(KEY_HOLD, holdings); recordSnap(); renderStock();
+}
+// 백업: 가계부 관련 localStorage 전체를 JSON 파일로 저장 / 불러오기
+$('backupBtn').addEventListener('click', ()=>{
+  const data = localDump();
+  const blob = new Blob([JSON.stringify({app:'가계부', savedAt:new Date().toISOString(), data}, null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `가계부-백업-${localDay()}.json`; a.click();
+});
+$('restoreBtn').addEventListener('click', ()=> $('restoreFile').click());
+$('restoreFile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (j.app !== '가계부' || !j.data) throw new Error('format');
+    if (!confirm(`${(j.savedAt||'').slice(0,10)}에 저장한 백업으로 지금 데이터를 바꿀까요?\n(지금 이 화면의 기록은 백업 내용으로 덮어써져요)`)) return;
+    applyData(j.data, Date.now());
+    if (serverOn) await pushServer();
+    location.reload();
+  } catch(err) { alert('가계부 백업 파일이 아니거나 파일이 손상됐어요.'); }
+  e.target.value = '';
+});
+
+$('cfgForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const k = $('cKey').value.replace(/\s/g, '');
+  if (k && !validKey(k)) {
+    alert('API 키에 영문·숫자 외의 문자가 있어요.\nFinnhub 대시보드에서 가려진 값(•••)이 아니라 전체 키를 복사해 주세요.');
+    return;
+  }
+  cfg.key = k || DEFAULT_KEY;
+  $('cKey').value = cfg.key;
+  cfg.fxManual = Number($('cFx').value) || null;
+  store(KEY_CFG, cfg);
+  refreshQuotes();
+});
+
+/* ================= 자산 현황 (통장 + 주식) ================= */
+const KEY_ACCT = 'ledger-accounts-v1', KEY_ASNAP = 'ledger-asset-snap-v1';
+let accounts = load(KEY_ACCT);    // [{id, name, kind, base, baseDate, baseAt}]  base = baseDate 시점 실제 잔고
+let asnaps = loadObj(KEY_ASNAP);  // {'YYYY-MM-DD': {bank, stock}}
+const acctName = id => (accounts.find(a=>a.id===id) || {}).name || '';
+const curMonth = () => localDay().slice(0,7);
+
+// 잔고 기준 이후의 기록만 반영. 기준일 당일 기록은 잔고를 맞춘 뒤 입력한 것만 (id = 생성 시각)
+const afterBase = (a, date, id) => date > a.baseDate || (date === a.baseDate && id > a.baseAt);
+function fixedDates(f, upto){
+  const out = [], endM = f.end && f.end < upto.slice(0,7) ? f.end : upto.slice(0,7);
+  for (let m = f.start; m <= endM; m = addMonths(m,1)) {
+    const d = `${m}-${pad(Math.min(f.day, lastDay(m)))}`;
+    if (d <= upto) out.push(d);
+  }
+  return out;
+}
+// 통장별 입출금 [{date, amount(±)}] — 오늘까지 일어난 것만
+function acctFlows(a, upto = localDay()){
+  const fl = [];
+  items.forEach(i=>{
+    if (i.date > upto || !afterBase(a, i.date, i.id)) return;
+    if (i.type==='income' && i.acct===a.id) fl.push({date:i.date, amount: i.amount});
+    if (i.type==='spend'  && i.acct===a.id) fl.push({date:i.date, amount:-i.amount});
+    if (i.type==='save'   && i.to===a.id)   fl.push({date:i.date, amount: i.amount});
+    if (i.type==='save'   && i.from===a.id) fl.push({date:i.date, amount:-i.amount});
+  });
+  fixed.forEach(f=>{
+    const out = f.acct===a.id, inn = fixedType(f)==='save' && f.to===a.id;
+    if (out || inn) fixedDates(f, upto).forEach(d=>{ if (d > a.baseDate) { if (out) fl.push({date:d, amount:-f.amount}); if (inn) fl.push({date:d, amount:f.amount}); } });
+  });
+  realized.forEach(r=>{ if (r.acct===a.id && r.date <= upto && afterBase(a, r.date, r.id)) fl.push({date:r.date, amount:r.proceeds}); });
+  return fl;
+}
+const sumFlows = fl => fl.reduce((s,f)=>s+f.amount, 0);
+const acctBalance = a => a.base + sumFlows(acctFlows(a));
+const acctMonthFlow = a => sumFlows(acctFlows(a).filter(f=>f.date.startsWith(curMonth())));
+const bankTotal = () => accounts.reduce((s,a)=>s+acctBalance(a), 0);
+function stockNow(){
+  const t = totals(); if (t.ready) return t.value;
+  const ds = Object.keys(snaps).sort(); return ds.length ? snaps[ds[ds.length-1]].value : 0;
+}
+function recordAsset(){
+  if (!accounts.length && !holdings.length) return;
+  const v = {bank: Math.round(bankTotal()), stock: Math.round(stockNow())}, d = localDay();
+  if (JSON.stringify(asnaps[d]) === JSON.stringify(v)) return;  // 바뀐 게 없으면 저장 안 함
+  asnaps[d] = v; store(KEY_ASNAP, asnaps);
+}
+
+function updateTabs(){
+  recordAsset();
+  document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('on', b.dataset.v === view));
+  const t = totals(), base = t.value - t.day;
+  $('tabAsset').innerHTML = accounts.length || holdings.length ? `<span class="amt num">${shortWon(bankTotal() + stockNow())}원</span>` : '';
+  $('tabStock').innerHTML = holdings.length && t.ready
+    ? `<span class="amt num">${shortWon(t.value)}원</span><span class="amt num ${tone(t.day)}">${arrow(t.day)}${base && t.day ? pct(t.day/base*100) : ''}</span>` : '';
+}
+
+function acctOptions(){
+  return `<option value="">선택 안 함</option>` + accounts.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('');
+}
+function fillAcctSelects(){
+  ['eAcct','eTo','fAcct','fTo'].forEach(id=> $(id).innerHTML = acctOptions());
+  const main = (accounts.find(a=>a.kind==='생활비') || accounts[0] || {}).id || '';
+  $('fAcct').value = main;
+  $('fAcctWrap').classList.toggle('hide', !accounts.length);
+  preselectAcct();
+  updateFixedForm();
+}
+// 구분·항목에 맞춰 통장 자동 선택 (지출/수입 → 생활비 통장, 저축 → 같은 종류 통장)
+function preselectAcct(){
+  const t = $('eType').value, cat = $('eCat').value;
+  const byKind = k => (accounts.find(a=>a.kind===k) || {}).id || '';
+  const main = byKind('생활비') || (accounts[0] || {}).id || '';
+  $('eAcctLb').textContent = t === 'income' ? '입금 통장' : '출금 통장';
+  $('eAcctWrap').classList.toggle('hide', !accounts.length);
+  $('eToWrap').classList.toggle('hide', t !== 'save' || !accounts.length);
+  $('eAcct').value = main;
+  if (t === 'save') $('eTo').value = byKind({주식:'증권', 예금:'예금', 적금:'적금', 비상금:'비상금'}[cat]);
+}
+
+function renderAsset(){
+  if (view !== 'asset') return;
+  const t = totals(), bank = bankTotal(), stock = stockNow(), total = bank + stock;
+
+  $('aTotal').textContent = won(total);
+  $('aTotalS').textContent = `통장 ${accounts.length}개 + 주식 ${holdings.length}종목`;
+  $('aBank').textContent = won(bank);
+  const mf = accounts.reduce((s,a)=>s+acctMonthFlow(a), 0);
+  $('aBankS').textContent = `이번 달 입출금 ${signed(mf)}`;
+  $('aStock').textContent = won(stock);
+  $('aStockS').textContent = !holdings.length ? '보유 종목 없음' : t.ready ? `오늘 ${signed(t.day)}` : '';
+  const prevKey = Object.keys(asnaps).filter(d=>d.slice(0,7) < curMonth()).sort().pop();
+  if (prevKey) {
+    const p = asnaps[prevKey], pt = p.bank + p.stock, d = total - pt;
+    $('aChg').textContent = d ? `${arrow(d)}${won(Math.abs(d))}` : '변동 없음';
+    $('aChg').className = 'v num ' + tone(d);
+    $('aChgS').textContent = `${prevKey} 대비${pt ? ' · ' + pct(d/pt*100) : ''}`;
+  } else {
+    $('aChg').textContent = '–'; $('aChg').className = 'v num muted';
+    $('aChgS').textContent = '지난달 기록이 쌓이면 보여요';
+  }
+
+  // 자산 구성
+  const comp = [...accounts.map(a=>({name:a.name, kind:a.kind, v:acctBalance(a)})),
+                ...(holdings.length ? [{name:'주식', kind:'미국 주식', v:stock}] : [])].sort((a,b)=>b.v-a.v);
+  const max = Math.max(1, ...comp.map(c=>c.v));
+  $('aComp').innerHTML = !comp.length ? `<div class="empty">아래 내 통장에서 통장을 추가해 보세요</div>` :
+    comp.map(c=>`<div class="hbar">
+      <span>${esc(c.name)}<span class="sub2">${esc(c.kind)}</span></span>
+      <div class="track"><div class="fill" style="width:${Math.max(0,c.v)/max*100}%"></div></div>
+      <span class="val num">${won(c.v)}<small>${total > 0 ? Math.round(c.v/total*100) + '%' : ''}</small></span></div>`).join('');
+
+  // 통장 목록
+  if (!accounts.length) $('acctAdd').open = true;
+  $('acctTable').innerHTML = !accounts.length
+    ? `<tr><td class="empty">등록된 통장이 없어요. 통장 이름과 지금 잔고를 입력해 보세요.</td></tr>`
+    : `<tr><th>통장</th><th>종류</th><th class="r">현재 잔고</th><th class="r">이번 달 입출금</th><th>잔고 기준일</th><th></th></tr>` +
+      accounts.map(a=>{ const m = acctMonthFlow(a); return `<tr>
+        <td><b>${esc(a.name)}</b></td><td><span class="tag">${esc(a.kind)}</span></td>
+        <td class="r"><b>${won(acctBalance(a))}</b></td>
+        <td class="r ${tone(m)}">${m ? signed(m) : '<span class="muted">–</span>'}</td>
+        <td class="muted">${a.baseDate}</td>
+        <td class="r" style="white-space:nowrap"><button class="x" onclick="editAcct(${a.id})">수정</button><button class="x" onclick="syncAcct(${a.id})">잔고 맞추기</button><button class="x" onclick="delAcct(${a.id})">삭제</button></td></tr>`; }).join('');
+
+  // 일별 · 월별
+  const ar = Object.keys(asnaps).sort().map(d=>({d, ...asnaps[d], total: asnaps[d].bank + asnaps[d].stock}));
+  lineChart($('aDChart'), ar.slice(-30).map(r=>({
+    label: r.d.slice(5).replace('-','/'), value: r.total,
+    tip: `<b>${r.d}</b><br>총 자산 ${won(r.total)}<br>통장 ${won(r.bank)} · 주식 ${won(r.stock)}`
+  })), '2일 이상 기록이 쌓이면 그래프가 보여요');
+  const by = {}; ar.forEach(r=> by[r.d.slice(0,7)] = r);   // 정렬돼 있으니 마지막 값 = 월말
+  const ms = Object.keys(by).sort();
+  const mr = ms.map((m,i)=>{ const r = by[m], p = i ? by[ms[i-1]] : null;
+    return {m, ...r, chg: p ? r.total - p.total : null, rate: p && p.total ? (r.total - p.total)/p.total*100 : null}; });
+  if (!mr.length) $('aMChart').innerHTML = `<div class="empty">기록이 쌓이면 월별 변동이 보여요</div>`;
+  else barChart($('aMChart'), mr.slice(-6).map((r,i,a)=>({
+    label: `${Number(r.m.slice(5))}월`, value: Math.max(0, r.total), sel: i === a.length-1,
+    tip: `<b>${mName(r.m)}</b><br>총 자산 ${won(r.total)}<br>통장 ${won(r.bank)} · 주식 ${won(r.stock)}`
+  })));
+  $('aMTable').innerHTML = !mr.length ? '' :
+    `<tr><th>월</th><th class="r">통장</th><th class="r">주식</th><th class="r">총 자산</th><th class="r">전월 대비</th></tr>` +
+    mr.slice().reverse().map(r=>`<tr><td>${mName(r.m)}</td><td class="r">${won(r.bank)}</td><td class="r">${won(r.stock)}</td>
+      <td class="r"><b>${won(r.total)}</b></td>
+      <td class="r ${tone(r.chg)}">${r.chg == null ? '<span class="muted">–</span>' : `${arrow(r.chg)}${won(Math.abs(r.chg))} <small>(${pct(r.rate)})</small>`}</td></tr>`).join('');
+}
+
+function refreshAssets(){ store(KEY_ACCT, accounts); fillAcctSelects(); updateTabs(); renderAsset(); }
+$('acctForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const name = $('aName').value.trim(); if (!name) return;
+  if (editAcctId) {
+    const a = accounts.find(x=>x.id===editAcctId);
+    if (a) {
+      const bal = toNum($('aBal').value);
+      a.name = name; a.kind = $('aKind').value;
+      if (bal !== Math.round(acctBalance(a))) Object.assign(a, {base: bal, baseDate: localDay(), baseAt: Date.now()});
+    }
+    setAcctMode(false); toast('통장 정보를 수정했어요');
+  } else accounts.push({id: Date.now(), name, kind: $('aKind').value, base: toNum($('aBal').value), baseDate: localDay(), baseAt: Date.now()});
+  $('aName').value = ''; $('aBal').value = '';
+  refreshAssets(); render();
+});
+function syncAcct(id){
+  const a = accounts.find(x=>x.id===id), cur = Math.round(acctBalance(a));
+  const v = prompt(`${a.name}의 실제 잔고를 입력해 주세요.\n(지금 계산된 잔고: ${won(cur)})`, cur.toLocaleString('ko-KR'));
+  if (v === null) return;
+  Object.assign(a, {base: toNum(v), baseDate: localDay(), baseAt: Date.now()});
+  refreshAssets();
+}
+function delAcct(id){
+  if (!confirm(`${acctName(id)} 통장을 삭제할까요?\n(가계부 기록은 그대로 남아요)`)) return;
+  accounts = accounts.filter(a=>a.id!==id);
+  refreshAssets();
+}
+
+const VIEWS = ['ledger','asset','stock','report'];
+const titleOf = v => ({ledger: L.app, asset: `${L.tabAsset} 현황`, stock: `${L.tabStock} 현황`, report: L.tabReport})[v];
+function setView(v){
+  if (!VIEWS.includes(v)) v = 'ledger';
+  view = v; try { localStorage.setItem(KEY_VIEW, v); } catch(e) {}
+  VIEWS.forEach(k=> $(k + 'View').hidden = k !== v);
+  $('mnav').style.display = v === 'ledger' ? '' : 'none';
+  $('title').textContent = titleOf(v);
+  if (v === 'ledger') render();
+  renderStock();
+  renderReport();
+}
+document.querySelectorAll('#tabs button').forEach(b=> b.onclick = ()=> setView(b.dataset.v));
+let resizeTimer = null;
+window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(()=> setView(view), 150); });
+
+/* ================= 기록 수정 ================= */
+let editItemId = null, editFixedId = null, editAcctId = null;
+// 선택 목록에 없는 값(관리자 모드에서 지운 항목 등)이면 잠깐 추가해서 선택
+function setOption(sel, val){
+  if (val == null || val === '') return;
+  if (![...sel.options].some(o=>o.value === String(val))) sel.insertAdjacentHTML('beforeend', `<option>${esc(val)}</option>`);
+  sel.value = String(val);
+}
+function focusCard(el){ el.closest('.card').scrollIntoView({behavior:'smooth', block:'center'}); }
+
+function setEntryMode(editing){
+  if (!editing) { editItemId = null; $('eAmount').value = ''; $('eMemo').value = ''; $('eDate').value = localDay(); }
+  $('eSubmit').textContent = editing ? '수정 저장' : '추가';
+  $('eCancel').classList.toggle('hide', !editing);
+  $('entryTitle').textContent = editing ? '기록 수정' : '기록하기';
+  $('entryForm').closest('.card').classList.toggle('editing', editing);
+}
+function editItem(id){
+  const i = items.find(x=>x.id===id); if (!i) return;
+  if (view !== 'ledger') setView('ledger');
+  $('eType').value = i.type; fillCats(); setOption($('eCat'), i.cat); preselectAcct();
+  $('eDate').value = i.date;
+  if (i.method) $('eMethod').value = i.method;
+  if (i.type === 'save') { $('eAcct').value = i.from || ''; $('eTo').value = i.to || ''; }
+  else $('eAcct').value = i.acct || '';
+  $('eAmount').value = i.amount.toLocaleString('ko-KR'); $('eMemo').value = i.memo || '';
+  editItemId = id; setEntryMode(true);
+  focusCard($('entryForm')); $('eAmount').focus({preventScroll:true});
+}
+$('eCancel').addEventListener('click', ()=> setEntryMode(false));
+
+function setFixedMode(editing){
+  if (!editing) { editFixedId = null; $('fName').value = ''; $('fAmount').value = ''; }
+  $('fSubmit').textContent = editing ? '수정 저장' : '등록';
+  $('fCancel').classList.toggle('hide', !editing);
+  $('fixedForm').closest('.card').classList.toggle('editing', editing);
+}
+function editFixed(id){
+  const f = fixed.find(x=>x.id===id); if (!f) return;
+  if (view !== 'ledger') setView('ledger');
+  $('fixedAdd').open = true;
+  setOption($('fCat'), f.cat); updateFixedForm();
+  $('fName').value = f.name; $('fAmount').value = f.amount.toLocaleString('ko-KR'); $('fDay').value = f.day;
+  if (f.method) $('fMethod').value = f.method;
+  $('fAcct').value = f.acct || ''; if (f.to) $('fTo').value = f.to;
+  $('fStart').value = f.start;
+  editFixedId = id; setFixedMode(true);
+  focusCard($('fixedForm'));
+}
+$('fCancel').addEventListener('click', ()=> setFixedMode(false));
+
+function setAcctMode(editing){
+  if (!editing) { editAcctId = null; $('aName').value = ''; $('aBal').value = ''; }
+  $('aSubmit').textContent = editing ? '수정 저장' : '추가';
+  $('aCancel').classList.toggle('hide', !editing);
+  $('aBalLb').textContent = editing ? '현재 잔고 (원) — 바꾸면 잔고 맞추기' : '지금 잔고 (원)';
+  $('acctForm').closest('.card').classList.toggle('editing', editing);
+}
+function editAcct(id){
+  const a = accounts.find(x=>x.id===id); if (!a) return;
+  $('acctAdd').open = true;
+  $('aName').value = a.name; setOption($('aKind'), a.kind);
+  $('aBal').value = Math.round(acctBalance(a)).toLocaleString('ko-KR');
+  editAcctId = id; setAcctMode(true);
+  focusCard($('acctForm'));
+}
+$('aCancel').addEventListener('click', ()=> setAcctMode(false));
+
+/* ================= 주식: 매수 / 매도 / 수정 ================= */
+let stockMode = 'buy', stockEditKey = null;
+const findHolding = key => holdings.find(x=>qk(x)===key);
+function setStockMode(mode, key){
+  if (mode !== 'buy' && !holdings.length) { alert('먼저 보유 종목을 추가해 주세요.'); mode = 'buy'; }
+  stockMode = mode; stockEditKey = key || null;
+  const buy = mode === 'buy';
+  document.querySelectorAll('#hModeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.m === (mode === 'edit' ? '' : mode)));
+  $('hMktWrap').classList.toggle('hide', !buy); $('hSymWrap').classList.toggle('hide', !buy);
+  $('hSellWrap').classList.toggle('hide', buy);
+  $('hAcctWrap').classList.toggle('hide', mode !== 'sell' || !accounts.length);
+  if (!buy) {
+    const cur = $('hSell').value;
+    $('hSell').innerHTML = holdings.map(h=>`<option value="${qk(h)}">${esc(isKR(h) ? (h.name || h.sym) : h.sym)} · ${+h.qty.toFixed(4)}주</option>`).join('');
+    $('hSell').value = key || cur || qk(holdings[0]);
+    if (!$('hSell').value) $('hSell').value = qk(holdings[0]);
+  }
+  $('hSell').disabled = mode === 'edit';
+  if (mode === 'sell') {
+    $('hAcct').innerHTML = acctOptions();
+    $('hAcct').value = (accounts.find(a=>a.kind==='증권') || {}).id || '';
+  }
+  const h = findHolding($('hSell').value), cur = h && isKR(h) ? '원' : '$';
+  $('hQtyLb').textContent = mode === 'sell' ? '매도 수량 (주)' : mode === 'edit' ? '보유 수량 (주)' : '매수 수량 (주)';
+  $('hAvgLb').textContent = mode === 'sell' ? `매도 단가 (${cur})` : mode === 'edit' ? `평균 매수가 (${cur})` : ($('hMkt').value === 'KR' ? '매수 단가 (원)' : '매수 단가 ($)');
+  $('hSubmit').textContent = mode === 'sell' ? '매도 기록' : mode === 'edit' ? '수정 저장' : '추가';
+  $('hSubmit').classList.toggle('sell', mode === 'sell');
+  $('hCancel').classList.toggle('hide', buy);
+  $('stockForm').closest('.card').classList.toggle('editing', mode === 'edit');
+  if (mode === 'edit' && h) { $('hQty').value = +h.qty.toFixed(8); $('hAvg').value = +h.avg.toFixed(4); }
+  else if (mode === 'sell' && h) { const p = priceOf(h); $('hQty').value = ''; $('hAvg').value = p ? p.c : ''; }
+  else { $('hQty').value = ''; $('hAvg').value = ''; }
+  if (!buy) { $('stockAdd').open = true; }
+}
+document.querySelectorAll('#hModeSeg button').forEach(b=> b.addEventListener('click', ()=> setStockMode(b.dataset.m)));
+$('hSell').addEventListener('change', ()=> setStockMode(stockMode, $('hSell').value));
+$('hCancel').addEventListener('click', ()=> setStockMode('buy'));
+function sellHolding(key){ setStockMode('sell', key); focusCard($('stockForm')); $('hQty').focus({preventScroll:true}); }
+
+function doSell(){
+  const key = $('hSell').value, h = findHolding(key); if (!h) return;
+  const qty = parseFloat($('hQty').value), price = parseFloat(String($('hAvg').value).replace(/,/g,''));
+  if (!(qty > 0)) { alert('매도 수량을 0보다 큰 숫자로 입력해 주세요.'); $('hQty').focus(); return; }
+  if (qty > h.qty + 1e-9) { alert(`보유 수량(${+h.qty.toFixed(4)}주)보다 많이 팔 수 없어요.`); $('hQty').focus(); return; }
+  if (!(price > 0)) { alert('매도 단가를 입력해 주세요.'); $('hAvg').focus(); return; }
+  const fx = isKR(h) ? 1 : fxRate();
+  if (!fx) { alert('환율을 아직 불러오지 못했어요. 시세 설정에서 환율을 직접 입력해 주세요.'); return; }
+  const pl = qty * (price - h.avg) * fx, proceeds = qty * price * fx;
+  realized.push({id: Date.now(), date: localDay(), sym: h.sym, name: h.name, mkt: h.mkt || 'US', qty, price, avg: h.avg, fx,
+                 pl: Math.round(pl), proceeds: Math.round(proceeds), acct: Number($('hAcct').value) || null});
+  const name = isKR(h) ? (h.name || h.sym) : h.sym;
+  h.qty = +(h.qty - qty).toFixed(8);
+  if (h.qty <= 1e-9) { holdings = holdings.filter(x=>x!==h); delete quotes[key]; }
+  else (h.trades = h.trades || []).push({date: localDay(), qty: -qty, price, sell: true});
+  store(KEY_REAL, realized); store(KEY_HOLD, holdings);
+  toast(`${name} ${+qty.toFixed(4)}주 매도 · 실현 손익 ${signed(pl)}`);
+  setStockMode('buy'); recordSnap(); fillAcctSelects(); renderStock(); renderReport();
+}
+function doEditHolding(){
+  const h = findHolding(stockEditKey); if (!h) return;
+  const qty = parseFloat($('hQty').value), avg = parseFloat(String($('hAvg').value).replace(/,/g,''));
+  if (!(qty > 0)) { alert('보유 수량을 0보다 큰 숫자로 입력해 주세요. 전부 팔았다면 ‘매도’를 이용해 주세요.'); return; }
+  if (!(avg > 0)) { alert('평균 매수가를 입력해 주세요.'); return; }
+  h.qty = qty; h.avg = avg;
+  (h.trades = h.trades || [{date:'', qty, price:avg}]).push({date: localDay(), qty, price: avg, edit: true});
+  store(KEY_HOLD, holdings);
+  toast(`${isKR(h) ? (h.name || h.sym) : h.sym} 보유 정보를 수정했어요`);
+  setStockMode('buy'); recordSnap(); renderStock();
+}
+function renderRealized(){
+  const yr = localDay().slice(0,4), sum = arr => arr.reduce((a,r)=>a + r.pl, 0);
+  const yearPL = sum(realized.filter(r=>r.date.startsWith(yr))), allPL = sum(realized);
+  $('realSum').innerHTML = realized.length
+    ? `올해 <b class="${tone(yearPL)}">${signed(yearPL)}</b> · 전체 <b class="${tone(allPL)}">${signed(allPL)}</b>` : '';
+  const f = (r, v) => r.mkt === 'KR' ? won(v) : usd(v);
+  $('realTable').innerHTML = !realized.length
+    ? `<tr><td class="empty">아직 매도 기록이 없어요. 보유 종목의 ‘매도’를 눌러 기록해요.</td></tr>`
+    : `<tr><th>날짜</th><th>종목</th><th class="r">수량</th><th class="r">매도 단가</th><th class="r">평균 매수가</th><th class="r">매도 금액</th><th class="r">실현 손익</th><th>입금 통장</th><th></th></tr>` +
+      realized.slice().sort((a,b)=> b.date.localeCompare(a.date) || b.id - a.id).map(r=>`<tr>
+        <td>${r.date}</td><td><b>${esc(r.mkt === 'KR' ? (r.name || r.sym) : r.sym)}</b><span class="sub2">${r.mkt === 'KR' ? '국내 · ' + esc(r.sym) : esc(r.name || '')}</span></td>
+        <td class="r">${+r.qty.toFixed(4)}</td><td class="r">${f(r, r.price)}</td><td class="r">${f(r, r.avg)}</td>
+        <td class="r">${won(r.proceeds)}</td>
+        <td class="r ${tone(r.pl)}">${signed(r.pl)}<span class="sub2 ${tone(r.pl)}">${pct((r.price - r.avg) / r.avg * 100)}</span></td>
+        <td>${esc(acctName(r.acct)) || '<span class="muted">–</span>'}</td>
+        <td class="r"><button class="x" onclick="delReal(${r.id})" title="기록 삭제">✕</button></td></tr>`).join('');
+}
+function delReal(id){
+  if (!confirm('이 매도 기록을 지울까요?\n(기록만 지워지고, 판 수량이 보유 종목으로 돌아오지는 않아요)')) return;
+  realized = realized.filter(r=>r.id !== id); store(KEY_REAL, realized);
+  recordSnap(); fillAcctSelects(); renderStock(); renderReport();
+}
+
+/* ================= 예산 ================= */
+const KEY_BUDGET = 'ledger-budget-v1';
+let budget = (()=>{ const b = loadObj(KEY_BUDGET); return {total: b.total || 0, cats: b.cats || {}}; })();
+const budgetCats = () => [...new Set([...CATS.spend, ...CONF.fixedCats.spend])];
+function spendByCat(s){
+  const map = {};
+  s.its.filter(i=>i.type==='spend').forEach(i=> map[i.cat] = (map[i.cat] || 0) + i.amount);
+  s.fxSpend.forEach(f=> map[f.cat] = (map[f.cat] || 0) + f.amount);
+  return map;
+}
+const budgetLevel = (used, lim) => used > lim ? 'over' : used >= lim * 0.8 ? 'warn' : 'ok';
+function budgetSnapshot(m, cat){ const s = stats(m); return {total: s.spend, cat: spendByCat(s)[cat] || 0}; }
+// 80%를 처음 넘을 때 알려주고, 예산을 넘은 상태에서는 쓸 때마다 알려줌
+function budgetAlert(m, cat, before){
+  const s = stats(m), now = {total: s.spend, cat: spendByCat(s)[cat] || 0}, msgs = [];
+  const check = (name, b, a, lim) => {
+    if (!lim || a <= b) return;
+    const lb = budgetLevel(b, lim), la = budgetLevel(a, lim);
+    if (la === 'over') msgs.push(`⚠ ${name} 예산을 ${won(a - lim)} 넘었어요`);
+    else if (la === 'warn' && lb === 'ok') msgs.push(`${name} 예산의 ${Math.round(a / lim * 100)}%를 썼어요`);
+  };
+  check(`이번 달 ${L.spend}`, before.total, now.total, budget.total);
+  check(cat, before.cat, now.cat, budget.cats[cat]);
+  if (msgs.length) setTimeout(()=> toast(msgs.join(' · ')), editItemId ? 0 : 50);
+}
+function renderBudget(s){
+  const map = spendByCat(s), rows = [];
+  if (budget.total) rows.push({name: `전체 ${L.spend}`, used: s.spend, lim: budget.total, total: true});
+  Object.entries(budget.cats).filter(([,v])=>v > 0).forEach(([k,v])=> rows.push({name: k, used: map[k] || 0, lim: v}));
+  $('tBudget').innerHTML = budget.total
+    ? `예산 ${Math.round(s.spend / budget.total * 100)}% 사용 · ${s.spend <= budget.total ? `${won(budget.total - s.spend)} 남음` : `<b class="up">${won(s.spend - budget.total)} 초과</b>`}` : '';
+  $('budgetSum').textContent = rows.length ? mName(month) : '';
+  if (!rows.length) {
+    $('budgetBars').innerHTML = `<div class="empty" style="grid-column:1/-1">아래 ‘예산 설정’에서 한 달 예산을 정해 보세요. 80%를 넘거나 초과하면 알려 드려요.</div>`;
+    return;
+  }
+  $('budgetBars').innerHTML = rows.map(r=>{
+    const lv = budgetLevel(r.used, r.lim), w = Math.min(100, r.used / r.lim * 100);
+    return `<div class="bud ${lv}${r.total ? ' total' : ''}">
+      <div class="bud-top"><span>${esc(r.name)}</span><span class="num">${won(r.used)} <span class="muted">/ ${won(r.lim)}</span></span></div>
+      <div class="bud-track"><div class="bud-fill" style="width:${w}%"></div></div>
+      <div class="bud-note num">${lv === 'over' ? `⚠ ${won(r.used - r.lim)} 초과` : `${Math.round(r.used / r.lim * 100)}% 사용 · ${won(r.lim - r.used)} 남음`}</div></div>`;
+  }).join('');
+}
+function buildBudgetForm(){
+  const v = n => n ? n.toLocaleString('ko-KR') : '';
+  $('budgetForm').innerHTML =
+    `<div class="wide"><label>한 달 전체 ${esc(L.spend)} 예산 (원)</label><input class="money num" data-b="__total" value="${v(budget.total)}" placeholder="0" inputmode="numeric"></div>` +
+    budgetCats().map(c=>`<div><label>${esc(c)}</label><input class="money num" data-b="${esc(c)}" value="${v(budget.cats[c])}" placeholder="없음" inputmode="numeric"></div>`).join('');
+}
+$('budgetForm').addEventListener('input', e=>{
+  if (!e.target.classList.contains('money')) return;
+  const n = toNum(e.target.value); e.target.value = n ? n.toLocaleString('ko-KR') : '';
+});
+$('budgetEdit').addEventListener('toggle', ()=>{ if ($('budgetEdit').open) buildBudgetForm(); });
+$('budgetSave').addEventListener('click', ()=>{
+  const nb = {total: 0, cats: {}};
+  $('budgetForm').querySelectorAll('input').forEach(inp=>{
+    const n = toNum(inp.value);
+    if (inp.dataset.b === '__total') nb.total = n; else if (n) nb.cats[inp.dataset.b] = n;
+  });
+  // 지금 목록에 없는 항목(관리자 모드에서 지운 항목)의 예산은 유지
+  Object.entries(budget.cats).forEach(([k,v])=>{ if (!budgetCats().includes(k)) nb.cats[k] = v; });
+  budget = nb; store(KEY_BUDGET, budget);
+  $('budgetEdit').open = false; render(); toast('예산을 저장했어요');
+});
+
+/* ================= 리포트: 연간 · 기간 조회 · 검색 ================= */
+let rYear = Number(localDay().slice(0,4));
+function hbarRows(rows, total){
+  const max = Math.max(1, ...rows.map(r=>r[1]));
+  return rows.map(([k,v])=>`<div class="hbar" title="${esc(k)} ${won(v)}"><span>${esc(k)}</span>
+    <div class="track"><div class="fill" style="width:${v/max*100}%"></div></div>
+    <span class="val num">${won(v)}<small>${total ? Math.round(v/total*100) : 0}%</small></span></div>`).join('');
+}
+function renderReport(){
+  if (view !== 'report') return;
+  $('yLabel').textContent = `${rYear}년`;
+  // 아직 오지 않은 달은 고정 항목이 '예정'으로만 잡히므로 연간 합계에서 제외
+  const data = [...Array(12)].map((_,i)=>{ const m = `${rYear}-${pad(i+1)}`; return {m, future: m > curMonth(), ...stats(m)}; });
+  const past = data.filter(d=>!d.future);
+  const sum = k => past.reduce((a,d)=>a + d[k], 0);
+  const inc = sum('income'), sp = sum('spend'), sv = sum('save'), left = inc - sp - sv;
+  const active = past.filter(d=>d.income || d.spend || d.save).length;
+  const avg = v => active ? `월평균 ${won(v / active)}` : '';
+  $('rIncome').textContent = won(inc); $('rIncomeS').textContent = avg(inc);
+  $('rSpend').textContent = won(sp);   $('rSpendS').textContent = avg(sp);
+  $('rSave').textContent = won(sv);    $('rSaveS').textContent = inc ? `${L.income}의 ${Math.round(sv/inc*100)}%` : '';
+  $('rLeft').textContent = won(left);  $('rLeft').className = 'v num' + (left < 0 ? ' up' : '');
+  $('rLeftS').textContent = active ? `기록 있는 달 ${active}개월` : '이 해의 기록이 없어요';
+
+  barChart($('rChart'), data.map(d=>({
+    label: `${Number(d.m.slice(5))}월`, value: d.future ? 0 : d.spend, sel: d.m === curMonth(),
+    tip: d.future ? `<b>${mName(d.m)}</b><br>아직 오지 않은 달이에요` : `<b>${mName(d.m)}</b><br>${L.income} ${won(d.income)}<br>${L.spend} ${won(d.spend)}<br>${L.save} ${won(d.save)}`,
+    onClick: ()=>{ month = d.m; $('fStart').value = month; setView('ledger'); }
+  })));
+
+  const map = {};
+  past.forEach(d=> Object.entries(spendByCat(d)).forEach(([k,v])=> map[k] = (map[k] || 0) + v));
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  $('rCatLabel').textContent = `${rYear}년`;
+  $('rCats').innerHTML = rows.length ? hbarRows(rows, sp) : `<div class="empty">이 해의 ${L.spend} 기록이 없어요</div>`;
+
+  $('rTable').innerHTML = `<tr><th>월</th><th class="r">${L.income}</th><th class="r">${L.spend}</th><th class="r">${L.save}</th><th class="r">${L.left}</th><th class="r">전월 대비 ${L.spend}</th></tr>` +
+    data.map((d,i)=>{
+      const prev = i ? data[i-1].spend : stats(addMonths(d.m,-1)).spend, df = d.spend - prev, l = d.income - d.spend - d.save;
+      const cmp = d.future || !prev || !d.spend ? '<span class="muted">–</span>' : `<span class="${tone(df)}">${arrow(df)}${Math.abs(Math.round(df/prev*100))}%</span>`;
+      const zero = d.future || !(d.income || d.spend || d.save);
+      return `<tr class="${zero ? 'zero' : ''}"><td>${Number(d.m.slice(5))}월${d.future ? ' <small>(예정)</small>' : ''}</td><td class="r">${won(d.income)}</td><td class="r">${won(d.spend)}</td><td class="r">${won(d.save)}</td><td class="r ${l < 0 ? 'up' : ''}">${won(l)}</td><td class="r">${cmp}</td></tr>`;
+    }).join('') +
+    `<tr class="total"><td>합계${past.length < 12 ? ` <small class="muted">(${past.length}월까지)</small>` : ''}</td><td class="r">${won(inc)}</td><td class="r">${won(sp)}</td><td class="r">${won(sv)}</td><td class="r ${left < 0 ? 'up' : ''}">${won(left)}</td><td></td></tr>`;
+
+  renderQuery();
+}
+// 기간 안의 기록 + 고정 항목(결제일 기준)
+function periodRows(from, to){
+  const rows = items.filter(i=>i.date >= from && i.date <= to).map(i=>({...i, kind: i.type}));
+  fixed.forEach(f=>{
+    for (let m = from.slice(0,7); m <= to.slice(0,7); m = addMonths(m,1)) {
+      if (f.start > m || (f.end && m > f.end)) continue;
+      const d = `${m}-${pad(Math.min(f.day, lastDay(m)))}`;
+      if (d < from || d > to) continue;
+      rows.push({id: f.id, date: d, kind: 'fixed', ftype: fixedType(f), cat: f.cat, memo: f.name,
+                 method: fixedType(f) === 'save' ? undefined : f.method, acct: f.acct, from: f.acct, to: f.to, amount: f.amount});
+    }
+  });
+  return rows;
+}
+function renderQuery(){
+  let a = $('qFrom').value, b = $('qTo').value;
+  if (!a || !b) { $('qSum').textContent = '시작일과 종료일을 골라 주세요.'; $('qTable').innerHTML = ''; return; }
+  if (a > b) [a, b] = [b, a];
+  const type = $('qType').value, q = $('qText').value.trim().toLowerCase().replace(/,/g, '');
+  let rows = periodRows(a, b).filter(r =>
+    type === 'all' || r.kind === type || (r.kind === 'fixed' && (type === 'fixed' || r.ftype === type)));
+  if (q) rows = rows.filter(r => [r.cat, r.memo, String(r.amount), acctName(r.acct), acctName(r.from), acctName(r.to),
+                                  r.kind === 'fixed' ? L.fixed : TYPE_NAME[r.kind], METHOD_NAME[r.method]]
+                                  .some(v => String(v || '').toLowerCase().includes(q)));
+  rows.sort((x,y)=> y.date.localeCompare(x.date) || y.id - x.id);
+  const t = k => rows.filter(k).reduce((s,r)=>s + r.amount, 0);
+  const inc = t(r=>r.kind === 'income'), sp = t(r=>r.kind === 'spend' || (r.kind === 'fixed' && r.ftype === 'spend')),
+        sv = t(r=>r.kind === 'save' || (r.kind === 'fixed' && r.ftype === 'save'));
+  $('qSum').innerHTML = `<span><b>${rows.length}건</b> · ${a} ~ ${b}</span><span>${esc(L.income)} <b style="color:var(--income)">${won(inc)}</b></span>`
+    + `<span>${esc(L.spend)} <b>${won(sp)}</b></span><span>${esc(L.save)} <b style="color:var(--savec)">${won(sv)}</b></span>`;
+  const shown = rows.slice(0, 300);
+  $('qTable').innerHTML = !rows.length ? `<tr><td class="empty">조건에 맞는 기록이 없어요</td></tr>`
+    : LIST_HEAD + shown.map(listRow).join('') + (rows.length > shown.length ? `<tr><td colspan="8" class="empty">최근 ${shown.length}건만 보여요. 기간을 좁혀 보세요.</td></tr>` : '');
+}
+function initReport(){
+  const m = curMonth();
+  $('qFrom').value = `${m}-01`; $('qTo').value = `${m}-${pad(lastDay(m))}`;
+  ['qFrom','qTo','qType','qText'].forEach(id=>{ $(id).addEventListener('input', renderQuery); $(id).addEventListener('change', renderQuery); });
+  $('qQuick').addEventListener('click', e=>{
+    const r = e.target.dataset.r; if (!r) return;
+    const t = localDay(), cm = curMonth(), set = (x, y) => { $('qFrom').value = x; $('qTo').value = y; renderQuery(); };
+    if (r === 'month') set(`${cm}-01`, `${cm}-${pad(lastDay(cm))}`);
+    if (r === 'prev')  { const p = addMonths(cm, -1); set(`${p}-01`, `${p}-${pad(lastDay(p))}`); }
+    if (r === '3m')    set(`${addMonths(cm, -2)}-01`, t);
+    if (r === 'year')  set(`${t.slice(0,4)}-01-01`, `${t.slice(0,4)}-12-31`);
+    if (r === 'all')   { const ds = [...items.map(i=>i.date), ...fixed.map(f=>f.start + '-01')].sort(); set(ds[0] || `${cm}-01`, ds.length && ds[ds.length-1] > t ? ds[ds.length-1] : t); }
+  });
+  $('yPrev').addEventListener('click', ()=>{ rYear--; renderReport(); });
+  $('yNext').addEventListener('click', ()=>{ rYear++; renderReport(); });
+}
+
+/* ================= 관리자 모드: 용어·항목 수정 ================= */
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.timer); toast.timer = setTimeout(()=> t.classList.remove('show'), 3800);
+}
+function fillOptionLists(){
+  $('aKind').innerHTML = CONF.acctKinds.map(k=>`<option>${esc(k)}</option>`).join('');
+  fillCats(); fillFixedCats();
+}
+let draft = null, renames = [];
+const getList = path => path.split('.').reduce((o,k)=>o[k], draft);
+const LIST_DEFS = () => [
+  ['adCats',  [['cats.income', `${draft.labels.income} 항목`], ['cats.spend', `${draft.labels.spend} 항목`], ['cats.save', `${draft.labels.save} 항목`]]],
+  ['adFixed', [['fixedCats.spend', `${draft.labels.spend}형 (예: 구독료, 보험료)`], ['fixedCats.save', `${draft.labels.save}형 (예: 적금 · 통장 이체)`]]],
+  ['adKinds', [['acctKinds', '통장 종류']]],
+];
+// 같은 이름이 있으면 안 되는 범위 (고정 항목은 지출형/저축형을 이름으로 구분하므로 둘 다 확인)
+const dupScope = path => path.startsWith('fixedCats') ? [...draft.fixedCats.spend, ...draft.fixedCats.save] : getList(path);
+function renderAdmin(){
+  $('adLabels').innerHTML = Object.keys(DEFAULT_CONF.labels).map(k=>`<div><label>${LABEL_DESC[k]}</label>
+    <input data-lk="${k}" maxlength="12" value="${esc(draft.labels[k])}" placeholder="${esc(DEFAULT_CONF.labels[k])}"></div>`).join('');
+  LIST_DEFS().forEach(([box, lists])=>{
+    $(box).innerHTML = lists.map(([path, title])=>{
+      const id = 'add-' + path.replace('.', '-');
+      return `<div class="ad-list"><b>${esc(title)}</b>
+        <div class="chips">${getList(path).map((c,i)=>`<span class="chip">${esc(c)}<button type="button" title="이름 바꾸기" onclick="adRename('${path}',${i})">✎</button><button type="button" class="del" title="삭제" onclick="adDel('${path}',${i})">✕</button></span>`).join('')}</div>
+        <div class="ad-add"><input id="${id}" placeholder="새 항목" maxlength="20" onkeydown="if(event.key==='Enter'){event.preventDefault();adAdd('${path}')}"><button type="button" class="btn-line" onclick="adAdd('${path}')">추가</button></div></div>`;
+    }).join('');
+  });
+}
+$('adLabels').addEventListener('input', e=>{ if (e.target.dataset.lk) draft.labels[e.target.dataset.lk] = e.target.value; });
+function adAdd(path){
+  const el = $('add-' + path.replace('.', '-')), v = el.value.trim();
+  if (!v) return;
+  if (dupScope(path).includes(v)) { alert(`‘${v}’은(는) 이미 있어요.`); return; }
+  getList(path).push(v); renderAdmin();
+  $('add-' + path.replace('.', '-')).focus();
+}
+function adRename(path, i){
+  const list = getList(path), old = list[i];
+  const v = (prompt(`‘${old}’의 새 이름을 입력해 주세요.\n(이 이름으로 입력한 기존 기록도 함께 바뀌어요)`, old) || '').trim();
+  if (!v || v === old) return;
+  if (dupScope(path).includes(v)) { alert(`‘${v}’은(는) 이미 있어요.`); return; }
+  list[i] = v; renames.push({path, from: old, to: v}); renderAdmin();
+}
+function adDel(path, i){
+  const list = getList(path);
+  if (list.length <= 1) { alert('최소 1개는 남겨야 해요.'); return; }
+  if (!confirm(`‘${list[i]}’ 항목을 목록에서 지울까요?\n(이미 입력한 기록은 그대로 남아요)`)) return;
+  list.splice(i, 1); renderAdmin();
+}
+function openAdmin(){
+  if (!confirm('관리자 모드로 실행하시겠습니까?\n\n가계부 항목, 고정 항목 분류, 통장 종류, 용어(수입·지출 등)를 추가하거나 수정할 수 있어요.')) return;
+  draft = clone(CONF); renames = [];
+  renderAdmin();
+  $('adminModal').hidden = false;
+}
+function closeAdmin(ask){
+  if (ask && (JSON.stringify(draft) !== JSON.stringify(CONF)) && !confirm('저장하지 않은 변경 사항이 있어요. 닫을까요?')) return;
+  $('adminModal').hidden = true; draft = null;
+}
+function saveAdmin(){
+  Object.keys(draft.labels).forEach(k=> draft.labels[k] = (draft.labels[k] || '').trim() || DEFAULT_CONF.labels[k]);
+  // 이름 바꾼 항목은 기존 기록에도 반영
+  let ci = false, cf = false, ca = false, cb = false;
+  renames.forEach(({path, from, to})=>{
+    if (path.startsWith('cats.')) { const t = path.slice(5); items.forEach(i=>{ if (i.type===t && i.cat===from) { i.cat = to; ci = true; } }); }
+    else if (path.startsWith('fixedCats')) fixed.forEach(f=>{ if (f.cat===from) { f.cat = to; cf = true; } });
+    else if (path === 'acctKinds') accounts.forEach(a=>{ if (a.kind===from) { a.kind = to; ca = true; } });
+    if ((path === 'cats.spend' || path === 'fixedCats.spend') && budget.cats[from] != null) { budget.cats[to] = budget.cats[from]; delete budget.cats[from]; cb = true; }
+  });
+  if (ci) store(KEY_ITEMS, items);
+  if (cf) store(KEY_FIXED, fixed);
+  if (ca) store(KEY_ACCT, accounts);
+  if (cb) store(KEY_BUDGET, budget);
+  CONF = draft; store(KEY_CONF, CONF);
+  closeAdmin(false);
+  applyConf(); fillOptionLists(); fillAcctSelects();
+  render(); setView(view);
+  toast('관리자 설정을 저장했어요');
+}
+$('adminBtn').addEventListener('click', openAdmin);
+$('adminClose').addEventListener('click', ()=> closeAdmin(true));
+$('adCancel').addEventListener('click', ()=> closeAdmin(true));
+$('adSave').addEventListener('click', saveAdmin);
+$('adReset').addEventListener('click', ()=>{
+  if (!confirm('모든 용어와 항목 목록을 처음 상태로 되돌릴까요?\n(이미 입력한 기록의 항목 이름은 그대로 남아요)')) return;
+  draft = clone(DEFAULT_CONF); renames = []; renderAdmin();
+});
+$('adminModal').addEventListener('click', e=>{ if (e.target === $('adminModal')) closeAdmin(true); });
+document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && !$('adminModal').hidden) closeAdmin(true); });
+
+/* ---------- 시작 ---------- */
+$('eDate').value = today;
+$('fStart').value = month;
+$('cKey').value = cfg.key || '';
+$('cFx').value = cfg.fxManual || '';
+fillOptionLists();
+fillAcctSelects();
+initReport();
+render();
+setView(view);
+syncWithServer().then(()=> Promise.all([fetchFx(), checkProxy()])).then(refreshQuotes);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden && syncReady) syncWithServer(); });
+setInterval(()=>{ if (!document.hidden) refreshQuotes(); }, 60000);
+setInterval(fetchFx, 30*60000);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refreshQuotes(); });
+
+</script>
+<script>
+/* ================= MY MONEY 아이폰 앱 전용 ================= */
+(function(){
+  /* --- 설정 탭 --- */
+  VIEWS.push('settings');
+  const _setView = setView;
+  setView = function(v){
+    _setView(v);
+    if (view === 'settings') $('title').textContent = '설정';
+    $('fab').classList.toggle('hide', view !== 'ledger');
+  };
+  document.querySelectorAll('#tabs button').forEach(b=> b.addEventListener('click', ()=> window.scrollTo(0, 0)));
+
+  /* --- 저장 상태: 이 아이폰에 저장 --- */
+  setSaveState = function(){
+    const el = $('saveState');
+    el.textContent = '이 아이폰에 자동 저장됨';
+    el.className = 'savestate saved';
+  };
+  setSaveState();
+
+  /* --- 기록하기 시트 --- */
+  const sheet = $('entrySheet'), bg = $('sheetBg');
+  function openSheet(){ sheet.classList.add('open'); bg.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeSheet(){
+    sheet.classList.remove('open'); bg.classList.remove('open'); document.body.style.overflow = '';
+    if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
+  }
+  const dismiss = ()=>{ if (editItemId) setEntryMode(false); else closeSheet(); };
+  $('fab').addEventListener('click', ()=>{
+    if (editItemId) setEntryMode(false);
+    $('eDate').value = localDay();
+    openSheet();
+  });
+  $('sheetClose').addEventListener('click', dismiss);
+  bg.addEventListener('click', dismiss);
+  const _editItem = editItem;
+  editItem = function(id){ _editItem(id); openSheet(); };
+  const _setEntryMode = setEntryMode;
+  setEntryMode = function(editing){ _setEntryMode(editing); if (!editing) closeSheet(); };
+  let wasEditing = false;
+  $('entryForm').addEventListener('submit', ()=>{ wasEditing = !!editItemId; }, true);
+  $('entryForm').addEventListener('submit', ()=>{
+    if ($('eAmount').value) return;                      // 입력이 잘못돼 저장되지 않음
+    if (!wasEditing) toast('기록했어요');
+    closeSheet();
+  });
+  // 시트를 아래로 끌어내려 닫기
+  let startY = null;
+  sheet.addEventListener('touchstart', e=>{ startY = sheet.scrollTop <= 0 ? e.touches[0].clientY : null; }, {passive:true});
+  sheet.addEventListener('touchmove', e=>{
+    if (startY == null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+  }, {passive:true});
+  sheet.addEventListener('touchend', e=>{
+    if (startY == null) return;
+    const dy = e.changedTouches[0].clientY - startY; startY = null;
+    sheet.style.transform = '';
+    if (dy > 110) dismiss();
+  });
+
+  /* --- 백업·CSV: 아이폰 공유 시트로 저장 (파일 앱, 카카오톡, AirDrop 등) --- */
+  async function shareFile(name, text, type){
+    const file = new File([text], name, {type});
+    if (navigator.canShare && navigator.canShare({files: [file]})) {
+      try { await navigator.share({files: [file], title: name}); return; }
+      catch(e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; a.click();
+  }
+  const fresh = id => { const el = $(id), n = el.cloneNode(true); el.replaceWith(n); return n; };   // 기존 동작 제거
+  fresh('backupBtn').addEventListener('click', ()=>
+    shareFile(`MY MONEY 백업 ${localDay()}.json`,
+      JSON.stringify({app: '가계부', savedAt: new Date().toISOString(), data: localDump()}, null, 1), 'application/json'));
+  fresh('csv').addEventListener('click', ()=>{
+    const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+    const rows = [['날짜','구분','항목','결제수단','금액','메모']]
+      .concat([...items].sort((a,b)=>a.date.localeCompare(b.date)).map(i=>[i.date, TYPE_NAME[i.type], i.cat, METHOD_NAME[i.method]||'', i.amount, i.memo]))
+      .concat([[], [L.fixed], ['이름','분류','결제일','결제수단','월 금액','기간']])
+      .concat(fixed.map(f=>[f.name, f.cat, f.day+'일', METHOD_NAME[f.method]||'', f.amount, `${f.start}~${f.end||''}`]));
+    shareFile(`MY MONEY ${localDay()}.csv`, '﻿' + rows.map(r=>r.map(q).join(',')).join('\n'), 'text/csv');
+  });
+
+  /* --- 그래프: 손가락으로 눌러 값 보기 --- */
+  const touchToMouse = (e, type) => {
+    const t = e.target; if (!(t instanceof Element) || !t.classList.contains('ov')) return;
+    const p = e.touches[0] || e.changedTouches[0];
+    t.dispatchEvent(new MouseEvent(type, {clientX: p.clientX, clientY: p.clientY, bubbles: true}));
+  };
+  document.addEventListener('touchstart', e=> touchToMouse(e, 'mousemove'), {passive: true});
+  document.addEventListener('touchmove',  e=> touchToMouse(e, 'mousemove'), {passive: true});
+  document.addEventListener('touchend',   e=>{ const t = e.target; if (t instanceof Element && t.classList.contains('ov')) setTimeout(()=> t.dispatchEvent(new MouseEvent('mouseleave')), 1800); }, {passive: true});
+
+  /* --- 처음 쓰는 경우 안내 --- */
+  if (!hasContent(localDump())) {
+    const c = document.createElement('div');
+    c.className = 'card'; c.id = 'welcome';
+    c.innerHTML = `<h2>MY MONEY에 오신 걸 환영해요</h2>
+      <p class="note" style="margin-top:-6px">PC에서 쓰던 기록이 있다면 PC의 <b>백업 파일 저장</b>으로 만든 파일을 아이폰으로 보낸 뒤, 설정 → <b>백업 불러오기</b>로 옮겨 오세요. 새로 시작하려면 아래 ＋ 버튼을 눌러 첫 기록을 남겨 보세요.</p>
+      <div class="toolbar" style="margin-top:12px"><button class="btn-line" type="button" id="goRestore">백업 불러오기</button><button class="btn-line" type="button" id="hideWelcome">닫기</button></div>`;
+    $('ledgerView').prepend(c);
+    $('goRestore').onclick = ()=> $('restoreFile').click();
+    $('hideWelcome').onclick = ()=> c.remove();
+  }
+
+  /* --- 앱 정보 · 오프라인 · 저장공간 보호 --- */
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  $('appInfo').textContent = `버전 20261103-1047 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  const secure = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
+  if ('serviceWorker' in navigator && secure) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  setView(view);
+})();
+
+</script>
+</body>
+</html>
