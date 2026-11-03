@@ -2257,7 +2257,7 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refres
 
   /* --- 앱 정보 · 오프라인 · 저장공간 보호 --- */
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  $('appInfo').textContent = `버전 20261103-1114 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
+  $('appInfo').textContent = `버전 03b73a16 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   const secure = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
   if ('serviceWorker' in navigator && secure) navigator.serviceWorker.register('sw.js').catch(()=>{});
