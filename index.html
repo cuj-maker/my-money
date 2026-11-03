@@ -317,6 +317,22 @@
   .modal-foot > span{display:none}
   .modal-foot #adReset{grid-column:1 / -1; order:3; border:none; background:none; color:var(--up)}
   .modal-foot .btn, .modal-foot .btn-line{height:48px}
+
+  /* 잔고 맞추기 · 매도 기록 수정 */
+  .rec-bar{display:flex; align-items:center; gap:10px; margin-top:12px}
+  .rec-bar .btn-line{flex:0 0 auto; height:40px}
+  .rec-bar span{font-size:.76rem; line-height:1.4}
+  #recList{margin-top:12px}
+  .rec-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; background:var(--surface); border-radius:16px; padding:14px; margin-bottom:10px; box-shadow:inset 0 0 0 1.5px transparent}
+  .rec-row.changed{box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .rec-name{grid-column:1 / -1; font-size:.98rem}
+  .rec-name b::after{content:''; margin-left:6px; font-size:.72rem; font-weight:700; color:var(--accent)}
+  .rec-row.changed .rec-name b::after{content:'바뀜'}
+  .rec-px:empty{display:none}
+  .rec-px{align-self:end; padding-bottom:14px; font-size:.78rem; color:var(--muted)}
+  .rec-row input.bad{border-color:var(--up)}
+  #realModal section{margin-top:12px}
+  #rPreview:empty{display:none}
   .label-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .ad-lists{display:grid; gap:14px}
   .ad-list{border-bottom:1px solid var(--line-2); padding-bottom:14px}
@@ -502,6 +518,7 @@
     <div class="card">
       <h2>보유 종목 <small id="sStatus"></small></h2>
       <div class="list hold"><table class="num" id="holdTable"></table></div>
+      <div class="rec-bar" id="recBar"><button class="btn-line big" id="recBtn" type="button">잔고 맞추기</button><span class="muted">증권사 앱 보유 종목 화면을 보며 한 번에 고쳐요</span></div>
       <details class="addbox" id="stockAdd"><summary>＋ 매수 · 매도 기록</summary>
         <div class="seg full" id="hModeSeg" style="margin-bottom:14px">
           <button type="button" data-m="buy" class="on">매수</button>
@@ -694,6 +711,50 @@
       <span></span>
       <button class="btn-line" id="adCancel" type="button">취소</button>
       <button class="btn" id="adSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+<!-- ================= 주식 잔고 맞추기 ================= -->
+<div class="modal" id="recModal" hidden>
+  <div class="modal-box" role="dialog" aria-labelledby="recTitle">
+    <div class="modal-head">
+      <h2 id="recTitle">주식 잔고 맞추기 <small>증권사 앱의 보유 종목 화면과 숫자를 맞춰요</small></h2>
+      <button class="sheet-close" id="recClose" type="button" title="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="recList"></div>
+      <p class="note">고친 종목만 저장돼요. 수량을 <b>0</b>으로 하면 보유 목록에서 빠지지만 실현 손익은 남지 않아요 — 판 거라면 ‘매도’로 기록해 주세요.</p>
+    </div>
+    <div class="modal-foot">
+      <span class="muted" id="recInfo"></span><span style="flex:1"></span>
+      <button class="btn-line" id="recCancel" type="button">취소</button>
+      <button class="btn" id="recSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 매도 기록 수정 ================= -->
+<div class="modal" id="realModal" hidden>
+  <div class="modal-box sm" role="dialog" aria-labelledby="realTitle">
+    <div class="modal-head">
+      <h2 id="realTitle">매도 기록 수정 <small id="realName"></small></h2>
+      <button class="sheet-close" id="realClose" type="button" title="닫기">✕</button>
+    </div>
+    <div class="modal-body">
+      <section><div class="form f-real">
+        <div><label>매도일</label><input type="date" id="rDate"></div>
+        <div><label>매도 수량 (주)</label><input type="number" id="rQty" step="any" min="0" inputmode="decimal"></div>
+        <div><label id="rPriceLb">매도 단가</label><input type="number" id="rPrice" step="any" min="0" inputmode="decimal"></div>
+        <div><label id="rAvgLb">평균 매수가</label><input type="number" id="rAvg" step="any" min="0" inputmode="decimal"></div>
+        <div class="wide"><label>판 돈 입금 통장</label><select id="rAcct"></select></div>
+      </div></section>
+      <p class="note" id="rPreview"></p>
+      <p class="note">매도 금액과 실현 손익은 자동으로 다시 계산돼요. 보유 종목 수량은 바뀌지 않으니, 필요하면 ‘잔고 맞추기’로 고쳐 주세요.</p>
+    </div>
+    <div class="modal-foot">
+      <span style="flex:1"></span>
+      <button class="btn-line" id="realCancel" type="button">취소</button>
+      <button class="btn" id="realSave" type="button">수정 저장</button>
     </div>
   </div>
 </div>
@@ -984,7 +1045,7 @@ function listRow(r){
     : esc(acctName(r.acct));
   const actions = r.kind==='fixed'
     ? `<button class="x" onclick="editFixed(${r.id})" title="고정 항목 수정">수정</button>`
-    : `<button class="x" onclick="editItem(${r.id})" title="수정">✎</button><button class="x" onclick="delItem(${r.id})" title="삭제">✕</button>`;
+    : `<button class="x" onclick="editItem(${r.id})" title="기록 수정">수정</button><button class="x" onclick="delItem(${r.id})" title="기록 삭제">삭제</button>`;
   return `<tr><td>${r.date}</td><td><span class="tag ${r.kind}">${r.kind==='fixed' ? `고정·${TYPE_NAME[r.ftype]}` : TYPE_NAME[r.kind]}</span></td>
     <td>${esc(r.cat)}</td><td class="muted">${esc(r.memo)}</td>
     <td>${r.method ? METHOD_NAME[r.method] : '<span class="muted">–</span>'}</td>
@@ -1326,6 +1387,7 @@ function renderStock(){
   $('sPLS').textContent = [t.cost ? `수익률 ${pct(pl/t.cost*100)}` : '', realized.length ? `실현 ${signed(realTotal())}` : ''].filter(Boolean).join(' · ');
   $('sCost').textContent = won(t.cost);
   $('sCostS').textContent = `${holdings.length}개 종목`;
+  $('recBar').classList.toggle('hide', !holdings.length);
   const krNote = nKR && !proxy ? `<span class="up">국내 주식은 현재가를 직접 입력해요</span> · ` : '';
   $('sStatus').innerHTML = krNote + (stockErr ? `<span class="up">${stockErr}</span>`
     : lastUpdate ? `${lastUpdate.toLocaleTimeString('ko-KR')} 갱신 · 1분마다 자동 갱신` : (holdings.length ? '시세 불러오는 중…' : ''));
@@ -1350,7 +1412,7 @@ function renderStock(){
           <td class="r">${priceCell}</td>
           <td class="r">${won(val)}${isKR(h) ? '' : `<span class="sub2">${usd(h.qty*px)}</span>`}</td>
           <td class="r ${p ? tone(gl) : ''}">${p ? signed(gl) : '–'}<span class="sub2 ${p ? tone(gl) : ''}">${p && cost ? pct(gl/cost*100) : ''}</span></td>
-          <td class="r" style="white-space:nowrap">${manualBtn}<button class="x" onclick="sellHolding('${qk(h)}')" title="매도 기록">매도</button><button class="x" onclick="setStockMode('edit','${qk(h)}')" title="수량·평균 매수가 수정">수정</button><button class="x" onclick="delHolding('${qk(h)}')" title="삭제">✕</button></td></tr>`;
+          <td class="r" style="white-space:nowrap">${manualBtn}<button class="x" onclick="sellHolding('${qk(h)}')" title="매도 기록">매도</button><button class="x" onclick="setStockMode('edit','${qk(h)}')" title="수량·평균 매수가 수정">수정</button><button class="x" onclick="delHolding('${qk(h)}')" title="종목 삭제">삭제</button></td></tr>`;
       }).join('');
 
   // 일별
@@ -1867,8 +1929,116 @@ function renderRealized(){
         <td class="r">${won(r.proceeds)}</td>
         <td class="r ${tone(r.pl)}">${signed(r.pl)}<span class="sub2 ${tone(r.pl)}">${pct((r.price - r.avg) / r.avg * 100)}</span></td>
         <td>${esc(acctName(r.acct)) || '<span class="muted">–</span>'}</td>
-        <td class="r"><button class="x" onclick="delReal(${r.id})" title="기록 삭제">✕</button></td></tr>`).join('');
+        <td class="r" style="white-space:nowrap"><button class="x" onclick="editReal(${r.id})" title="매도 기록 수정">수정</button><button class="x" onclick="delReal(${r.id})" title="기록 삭제">삭제</button></td></tr>`).join('');
 }
+// 매도 기록 수정: 날짜·수량·단가·평균가·입금 통장을 고치면 매도 금액·실현 손익을 다시 계산
+let editRealId = null;
+const decNum = v => parseFloat(String(v).replace(/,/g,''));
+const realVals = () => ({qty: parseFloat($('rQty').value), price: decNum($('rPrice').value), avg: decNum($('rAvg').value)});
+function editReal(id){
+  const r = realized.find(x=>x.id===id); if (!r) return;
+  editRealId = id;
+  const cur = r.mkt === 'KR' ? '원' : '$';
+  $('realName').textContent = r.mkt === 'KR' ? (r.name || r.sym) : r.sym;
+  $('rPriceLb').textContent = `매도 단가 (${cur})`; $('rAvgLb').textContent = `평균 매수가 (${cur})`;
+  $('rDate').value = r.date; $('rQty').value = +r.qty.toFixed(8);
+  $('rPrice').value = +r.price.toFixed(4); $('rAvg').value = +r.avg.toFixed(4);
+  $('rAcct').innerHTML = acctOptions(); $('rAcct').value = r.acct || '';
+  if (r.acct && !accounts.some(a=>a.id===r.acct)) $('rAcct').value = '';
+  realPreview(); $('realModal').hidden = false;
+}
+function realPreview(){
+  const r = realized.find(x=>x.id===editRealId); if (!r) return;
+  const v = realVals();
+  $('rPreview').innerHTML = v.qty > 0 && v.price > 0 && v.avg > 0
+    ? `매도 금액 <b>${won(v.qty * v.price * r.fx)}</b> · 실현 손익 <b class="${tone(v.price - v.avg)}">${signed(Math.round(v.qty * (v.price - v.avg) * r.fx))}</b>` : '';
+}
+function closeReal(){ $('realModal').hidden = true; editRealId = null; }
+function saveReal(){
+  const r = realized.find(x=>x.id===editRealId); if (!r) return closeReal();
+  const v = realVals(), date = $('rDate').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert('매도일을 입력해 주세요.'); return; }
+  if (!(v.qty > 0)) { alert('매도 수량을 0보다 큰 숫자로 입력해 주세요.'); return; }
+  if (!(v.price > 0) || !(v.avg > 0)) { alert('매도 단가와 평균 매수가를 입력해 주세요.'); return; }
+  Object.assign(r, {date, qty: v.qty, price: v.price, avg: v.avg, acct: Number($('rAcct').value) || null,
+    pl: Math.round(v.qty * (v.price - v.avg) * r.fx), proceeds: Math.round(v.qty * v.price * r.fx)});
+  store(KEY_REAL, realized); closeReal(); toast('매도 기록을 수정했어요');
+  recordSnap(); fillAcctSelects(); renderStock(); renderReport();
+}
+['rQty','rPrice','rAvg'].forEach(id=> $(id).addEventListener('input', realPreview));
+$('realSave').addEventListener('click', saveReal);
+$('realCancel').addEventListener('click', closeReal);
+$('realClose').addEventListener('click', closeReal);
+$('realModal').addEventListener('click', e=>{ if (e.target === $('realModal')) closeReal(); });
+
+/* ================= 주식 잔고 맞추기 (여러 종목을 한 화면에서) ================= */
+const holdName = h => isKR(h) ? (h.name || h.sym) : h.sym;
+function openRec(){
+  if (!holdings.length) { alert('먼저 보유 종목을 추가해 주세요.'); return; }
+  const field = (f, label, val, ph) => `<div><label>${label}</label><input type="number" step="any" min="0" inputmode="decimal" data-f="${f}" data-o="${val}" value="${val}" placeholder="${ph || ''}"></div>`;
+  $('recList').innerHTML = holdings.map(h=>{
+    const p = priceOf(h), cur = isKR(h) ? '원' : '$';
+    const px = isKR(h) && !(p && p.live)
+      ? field('px', '현재가 (원)', h.manual || '', '직접 입력')
+      : `<div class="rec-px">${p ? `현재가 ${isKR(h) ? won(p.c) : usd(p.c)} · 자동` : ''}</div>`;
+    return `<div class="rec-row" data-k="${esc(qk(h))}">
+      <div class="rec-name"><b>${esc(holdName(h))}</b><span class="sub2">${isKR(h) ? '국내 · ' + esc(h.sym) : esc(h.name || '미국')}</span></div>
+      ${field('qty', '보유 수량 (주)', +h.qty.toFixed(8))}${field('avg', `평균 매수가 (${cur})`, +h.avg.toFixed(4))}${px}
+    </div>`;
+  }).join('');
+  recMark(); $('recModal').hidden = false;
+}
+function recRows(){
+  return [...$('recList').querySelectorAll('.rec-row')].map(el=>{
+    const inp = f => el.querySelector(`[data-f="${f}"]`);
+    const ch = f => !!inp(f) && inp(f).value.trim() !== inp(f).dataset.o;
+    return {el, h: findHolding(el.dataset.k), qtyCh: ch('qty'), avgCh: ch('avg'), pxCh: ch('px') && inp('px').value.trim() !== '',
+      qty: parseFloat(inp('qty').value), avg: decNum(inp('avg').value), px: inp('px') ? decNum(inp('px').value) : 0, inp};
+  });
+}
+function recMark(){
+  const rows = recRows();
+  rows.forEach(r=> r.el.classList.toggle('changed', r.qtyCh || r.avgCh || r.pxCh));
+  const n = rows.filter(r=>r.el.classList.contains('changed')).length;
+  $('recInfo').textContent = n ? `${n}개 종목을 고쳤어요` : '';
+}
+function closeRec(){ $('recModal').hidden = true; }
+function saveRec(){
+  const rows = recRows().filter(r=> r.h && (r.qtyCh || r.avgCh || r.pxCh));
+  if (!rows.length) { closeRec(); toast('바뀐 내용이 없어요'); return; }
+  for (const r of rows) {
+    const bad = f => { r.inp(f).classList.add('bad'); r.inp(f).focus(); };
+    if (!(r.qty >= 0)) { alert(`${holdName(r.h)}: 보유 수량을 숫자로 입력해 주세요.`); return bad('qty'); }
+    if (r.qty > 0 && !(r.avg > 0)) { alert(`${holdName(r.h)}: 평균 매수가를 입력해 주세요.`); return bad('avg'); }
+  }
+  const zero = rows.filter(r=>r.qty === 0);
+  if (zero.length && !confirm(`${zero.map(r=>holdName(r.h)).join(', ')} 수량을 0으로 했어요.\n보유 목록에서 뺄까요?\n\n(실현 손익은 기록되지 않아요. 판 거라면 취소하고 ‘매도’로 기록해 주세요)`)) return;
+  rows.forEach(r=>{
+    const h = r.h;
+    if (r.qty === 0) { holdings = holdings.filter(x=>x!==h); delete quotes[qk(h)]; return; }
+    if (r.qtyCh || r.avgCh) {
+      h.trades = h.trades || [{date:'', qty: h.qty, price: h.avg}];
+      if (r.qtyCh) h.qty = r.qty;
+      if (r.avgCh) h.avg = r.avg;
+      h.trades.push({date: localDay(), qty: h.qty, price: h.avg, edit: true});
+    }
+    if (r.pxCh && r.px > 0) h.manual = r.px;
+  });
+  store(KEY_HOLD, holdings); closeRec();
+  toast(`${rows.length}개 종목 잔고를 맞췄어요`);
+  setStockMode('buy'); recordSnap(); renderStock();
+}
+$('recBtn').addEventListener('click', openRec);
+$('recList').addEventListener('input', e=>{ e.target.classList.remove('bad'); recMark(); });
+$('recSave').addEventListener('click', saveRec);
+$('recCancel').addEventListener('click', closeRec);
+$('recClose').addEventListener('click', closeRec);
+$('recModal').addEventListener('click', e=>{ if (e.target === $('recModal')) closeRec(); });
+document.addEventListener('keydown', e=>{
+  if (e.key !== 'Escape') return;
+  if (!$('recModal').hidden) closeRec();
+  if (!$('realModal').hidden) closeReal();
+});
 function delReal(id){
   if (!confirm('이 매도 기록을 지울까요?\n(기록만 지워지고, 판 수량이 보유 종목으로 돌아오지는 않아요)')) return;
   realized = realized.filter(r=>r.id !== id); store(KEY_REAL, realized);
@@ -2257,7 +2427,7 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refres
 
   /* --- 앱 정보 · 오프라인 · 저장공간 보호 --- */
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  $('appInfo').textContent = `버전 03b73a16 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
+  $('appInfo').textContent = `버전 b2a2ba53 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   const secure = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
   if ('serviceWorker' in navigator && secure) navigator.serviceWorker.register('sw.js').catch(()=>{});

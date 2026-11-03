@@ -1,6 +1,6 @@
 // MY MONEY 오프라인 지원: 앱 화면 파일을 아이폰에 저장해 두고, 인터넷이 없어도 열리게 함
 // (기록은 여기 저장하지 않음 — 기록은 앱 안의 저장소에 있음)
-const CACHE = 'mymoney-03b73a16';
+const CACHE = 'mymoney-b2a2ba53';
 const FILES = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
