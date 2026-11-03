@@ -569,7 +569,7 @@
           <button class="btn" type="submit" id="hSubmit">추가</button>
           <button class="btn-line big hide" type="button" id="hCancel">취소</button>
         </form>
-        <p class="note">이미 가진 종목을 다시 입력하면 <b>추가 매수</b>로 합쳐지고 평균 매수가가 다시 계산돼요. 국내 종목은 6자리 종목코드로 입력하고 현재가를 직접 입력해요.</p>
+        <p class="note">이미 가진 종목을 다시 입력하면 <b>추가 매수</b>로 합쳐지고 평균 매수가가 다시 계산돼요. 국내 종목은 이름(예: 삼성전자)이나 6자리 종목코드로 입력해요.</p>
       </details>
     </div>
 
@@ -679,7 +679,7 @@
         <div class="wide"><label>환율 직접 입력 (선택, 원/$)</label><input type="number" id="cFx" step="any" min="0" inputmode="decimal" placeholder="비우면 자동"></div>
         <button class="btn" type="submit">저장</button>
       </form>
-      <p class="note">미국 주식은 1분마다 자동 갱신돼요. 국내 주식은 앱에서 시세를 받을 수 없어 현재가를 직접 입력해요.</p>
+      <p class="note">미국 주식(Finnhub 키 필요)과 국내 주식(네이버 시세)은 앱이 열려 있는 동안 1분마다 자동 갱신돼요. 국내 시세를 못 받을 때는 현재가를 직접 입력할 수 있어요.</p>
     </div>
 
     <div class="sec-title">홈 화면에 설치하기</div>
@@ -1330,14 +1330,15 @@ async function finnhub(path){
 const isKR = h => h.mkt === 'KR';
 const qk = h => (isKR(h) ? 'KR:' : '') + h.sym;          // quotes 키
 let proxy = false;
+const KR_RELAY = 'https://my-money-kr.cuj-money.workers.dev';   // 아이폰 앱 빌드에서 Cloudflare 중계 서버 주소로 바뀜 (PC는 server.py 사용)
 async function checkProxy(){
-  if (APP_MODE) return proxy = false;
+  if (APP_MODE && !KR_RELAY) return proxy = false;
   if (!location.protocol.startsWith('http')) return proxy = false;
-  try { const r = await fetch('/api/ping'); proxy = r.ok && (await r.json()).ok === true; } catch(e) { proxy = false; }
+  try { const r = await fetch(KR_RELAY + '/api/ping'); proxy = r.ok && (await r.json()).ok === true; } catch(e) { proxy = false; }
   return proxy;
 }
 async function krApi(path){
-  const r = await fetch('/api/kr/' + path);
+  const r = await fetch(KR_RELAY + '/api/kr/' + path);
   if (!r.ok) throw new Error('kr');
   return r.json();
 }
@@ -1434,7 +1435,7 @@ function renderStock(){
   $('sCost').textContent = won(t.cost);
   $('sCostS').textContent = `${holdings.length}개 종목`;
   $('recBar').classList.toggle('hide', !holdings.length);
-  const krNote = nKR && !proxy ? `<span class="up">국내 주식은 현재가를 직접 입력해요</span> · ` : '';
+  const krNote = nKR && !proxy ? `<span class="up">국내 시세를 받지 못했어요 · 현재가를 직접 입력하거나 잠시 뒤 다시 열어 주세요</span> · ` : '';
   $('sStatus').innerHTML = krNote + (stockErr ? `<span class="up">${stockErr}</span>`
     : lastUpdate ? `${lastUpdate.toLocaleTimeString('ko-KR')} 갱신 · 1분마다 자동 갱신` : (holdings.length ? '시세 불러오는 중…' : ''));
 
@@ -1517,7 +1518,7 @@ async function resolveKR(text){
   const m = text.match(/^(.*?)\s*\(([0-9A-Z]{6})\)$/);
   if (m) return {code: m[2], name: m[1]};
   if (/^[0-9A-Z]{6}$/i.test(text)) return {code: text.toUpperCase(), name: ''};
-  if (!proxy) { alert('앱에서는 종목 이름 검색이 안 돼요.\n6자리 종목코드로 입력해 주세요. (예: 379810)'); return null; }
+  if (!proxy) { alert('지금은 종목 이름 검색이 안 돼요. (인터넷 연결을 확인해 주세요)\n6자리 종목코드로 입력해 주세요. (예: 379810)'); return null; }
   const list = await krApi('search?q=' + encodeURIComponent(text)).catch(()=>[]);
   if (!list.length) { alert(`‘${text}’에 해당하는 국내 종목을 찾지 못했어요. 이름을 조금 다르게 입력해 보세요.`); return null; }
   if (!confirm(`${list[0].name} (${list[0].code}) 종목으로 추가할까요?`)) return null;
@@ -1592,7 +1593,7 @@ function showTrades(key){
 // 국내 종목 현재가 직접 입력 (실시간 시세를 못 받을 때)
 function setManual(key){
   const h = holdings.find(x=>qk(x)===key); if (!h) return;
-  const v = prompt(`${h.name || h.sym}의 현재가(원)를 입력해 주세요.\n(앱에서는 국내 시세를 자동으로 받을 수 없어요)`, h.manual ? h.manual.toLocaleString('ko-KR') : '');
+  const v = prompt(`${h.name || h.sym}의 현재가(원)를 입력해 주세요.\n(자동 시세를 받으면 그 값이 먼저 쓰여요)`, h.manual ? h.manual.toLocaleString('ko-KR') : '');
   if (v === null) return;
   const n = toNum(v); if (!n) return;
   h.manual = n; store(KEY_HOLD, holdings); recordSnap(); renderStock();
@@ -2481,7 +2482,7 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refres
 
   /* --- 앱 정보 · 오프라인 · 저장공간 보호 --- */
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  $('appInfo').textContent = `버전 cb587e94 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
+  $('appInfo').textContent = `버전 29be4ff8 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   const secure = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
   if ('serviceWorker' in navigator && secure) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -2507,7 +2508,7 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refres
   }));
 
   /* --- 업데이트: 새 버전이 올라왔는지 확인하고 바로 반영 --- */
-  const BUILD = 'cb587e94';
+  const BUILD = '29be4ff8';
   async function latestBuild(){
     if (!secure) return null;
     try {
