@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f3f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0f13" media="(prefers-color-scheme: dark)">
+<script>try{var t=localStorage.getItem('ledger-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -25,14 +26,24 @@
     --safe-t:env(safe-area-inset-top, 0px); --safe-b:env(safe-area-inset-bottom, 0px);
     --tabbar:58px;
   }
+  /* 화면 모드: 설정 탭에서 시스템 / 라이트 / 다크 선택 (html data-theme) */
+  :root{color-scheme:light dark}
+  :root[data-theme="light"]{color-scheme:light}
   @media (prefers-color-scheme: dark){
-    :root{
+    :root:not([data-theme="light"]){
       --bg:#0d0f13; --surface:#181b22; --surface-2:#1f232b; --ink:#eceef1; --ink2:#aab1ba; --muted:#737b86;
       --line:#2a2f38; --line-2:#22262e; --accent:#7096f5; --accent-2:#3a4f86; --accent-soft:#1c2438;
       --up:#f07167; --down:#6f9ef5; --warn:#e3a008;
       --income:#4cc38a; --spendc:#f07167; --savec:#7096f5;
       --field:#22262e; --bar:rgba(24,27,34,.88);
     }
+  }
+  :root[data-theme="dark"]{color-scheme:dark;
+      --bg:#0d0f13; --surface:#181b22; --surface-2:#1f232b; --ink:#eceef1; --ink2:#aab1ba; --muted:#737b86;
+      --line:#2a2f38; --line-2:#22262e; --accent:#7096f5; --accent-2:#3a4f86; --accent-soft:#1c2438;
+      --up:#f07167; --down:#6f9ef5; --warn:#e3a008;
+      --income:#4cc38a; --spendc:#f07167; --savec:#7096f5;
+      --field:#22262e; --bar:rgba(24,27,34,.88);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}
@@ -80,6 +91,10 @@
   .card-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap}
   .card-head h2{margin:0}
   .subhead{font-size:.85rem; font-weight:700; color:var(--ink2); margin:20px 0 4px; padding-top:16px; border-top:1px solid var(--line-2)}
+  .upd-bar{position:fixed; left:12px; right:12px; max-width:520px; margin:0 auto; top:calc(var(--safe-t) + 10px); z-index:80; display:flex; align-items:center; gap:10px;
+    background:var(--ink); color:var(--bg); border-radius:14px; padding:10px 10px 10px 16px; font-size:.88rem; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .upd-bar span{flex:1}
+  .upd-bar button{border:none; background:var(--accent); color:#fff; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer}
   .sec-title{font-size:.8rem; font-weight:600; color:var(--muted); margin:22px 4px 8px; text-transform:uppercase; letter-spacing:.02em}
 
   /* ---------- 요약(히어로) ---------- */
@@ -633,6 +648,16 @@
 
   <!-- ================= 설정 ================= -->
   <div id="settingsView" hidden>
+    <div class="sec-title">화면 모드</div>
+    <div class="card">
+      <div class="seg full" id="themeSeg">
+        <button type="button" data-th="auto">시스템 설정</button>
+        <button type="button" data-th="light">라이트</button>
+        <button type="button" data-th="dark">다크</button>
+      </div>
+      <p class="note">‘시스템 설정’은 아이폰의 라이트·다크 모드를 따라가요.</p>
+    </div>
+
     <div class="sec-title">데이터</div>
     <div class="group">
       <button class="row" id="backupBtn" type="button"><span class="ic" style="background:#3366e6">⇪</span><span class="tx">백업 파일 저장<small>PC나 다른 기기로 옮길 때 · 가끔 보관용으로</small></span><span class="chev">›</span></button>
@@ -667,6 +692,7 @@
         <li>홈 화면의 <b>MY MONEY</b> 아이콘으로 실행해요</li>
       </ol>
       <p class="note" id="appInfo"></p>
+      <div class="toolbar" style="margin-top:10px"><button class="btn-line" id="updBtn" type="button">업데이트 확인</button></div>
     </div>
   </div>
 </div>
@@ -777,6 +803,7 @@
     </div>
   </div>
 </div>
+<div class="upd-bar hide" id="updBar"><span>새 버전이 있어요</span><button type="button" id="updGo">지금 업데이트</button></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2454,10 +2481,63 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) refres
 
   /* --- 앱 정보 · 오프라인 · 저장공간 보호 --- */
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  $('appInfo').textContent = `버전 4bf3cee8 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
+  $('appInfo').textContent = `버전 cb587e94 · ` + (standalone ? '홈 화면 앱으로 실행 중이에요' : '지금은 Safari에서 보고 있어요. 위 방법으로 홈 화면에 추가하세요');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   const secure = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
   if ('serviceWorker' in navigator && secure) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  /* --- 화면 모드 (시스템 / 라이트 / 다크) --- */
+  const THEME_KEY = 'ledger-theme';
+  function applyTheme(t){
+    const root = document.documentElement;
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{
+      const own = m.media.includes('dark') ? '#0d0f13' : '#f2f3f6';
+      m.content = t === 'dark' ? '#0d0f13' : t === 'light' ? '#f2f3f6' : own;
+    });
+    document.querySelectorAll('#themeSeg button').forEach(b=> b.classList.toggle('on', b.dataset.th === (t || 'auto')));
+  }
+  let theme = 'auto';
+  try { theme = localStorage.getItem(THEME_KEY) || 'auto'; } catch(e) {}
+  applyTheme(theme);
+  document.querySelectorAll('#themeSeg button').forEach(b=> b.addEventListener('click', ()=>{
+    theme = b.dataset.th;
+    try { theme === 'auto' ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, theme); } catch(e) {}
+    applyTheme(theme);
+  }));
+
+  /* --- 업데이트: 새 버전이 올라왔는지 확인하고 바로 반영 --- */
+  const BUILD = 'cb587e94';
+  async function latestBuild(){
+    if (!secure) return null;
+    try {
+      const t = await (await fetch('sw.js?v=' + Date.now(), {cache: 'no-store'})).text();
+      const m = t.match(/mymoney-([0-9a-f]{8})/); return m ? m[1] : null;
+    } catch(e) { return null; }
+  }
+  async function doUpdate(){
+    toast('새 버전을 받는 중…');
+    try {
+      await Promise.all(['./', './index.html'].map(u=> fetch(u, {cache: 'reload'}).catch(()=>{})));
+      const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update().catch(()=>{});
+    } catch(e) {}
+    location.reload();
+  }
+  const busy = () => sheet.classList.contains('open') || [...document.querySelectorAll('.modal')].some(m=>!m.hidden)
+    || (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName));
+  async function checkUpdate(manual){
+    const b = await latestBuild();
+    if (!b || b === BUILD) { if (manual) toast(b ? '최신 버전이에요' : '인터넷 연결을 확인해 주세요'); return; }
+    let tried = false;
+    try { tried = sessionStorage.getItem('upd-tried') === b; sessionStorage.setItem('upd-tried', b); } catch(e) {}
+    if (manual || (!tried && !busy())) return doUpdate();   // 쓰는 중이 아니면 바로 업데이트
+    $('updBar').classList.remove('hide');                   // 입력 중이면 알림만
+  }
+  $('updGo').addEventListener('click', doUpdate);
+  $('updBtn').addEventListener('click', ()=> checkUpdate(true));
+  checkUpdate(false);
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'visible') checkUpdate(false); });
 
   setView(view);
 })();
